@@ -223,6 +223,9 @@ window.addEventListener('message', function(event) {
             // 刷新界面
             if (typeof renderDashboard === 'function') renderDashboard();
             if (typeof renderPartyList === 'function') renderPartyList();
+            
+            // 转发 ERA 数据到 map iframe
+            forwardEraToMap(event.data);
         }
     } else if (event.data.type === 'PKM_REFRESH') {
         console.log('[PKM] 收到刷新请求 (postMessage)');
@@ -232,9 +235,25 @@ window.addEventListener('message', function(event) {
             // 刷新界面
             if (typeof renderDashboard === 'function') renderDashboard();
             if (typeof renderPartyList === 'function') renderPartyList();
+            
+            // 转发 ERA 数据到 map iframe
+            forwardEraToMap(event.data);
         }
     }
 });
+
+// 转发 ERA 数据到 map iframe
+function forwardEraToMap(message) {
+    const mapIframe = document.getElementById('map-iframe');
+    if (mapIframe && mapIframe.contentWindow) {
+        try {
+            mapIframe.contentWindow.postMessage(message, '*');
+            console.log('[PKM] ✓ 已转发 ERA 数据到 map iframe');
+        } catch (e) {
+            // map iframe 可能未加载
+        }
+    }
+}
 
 // 加载 ERA 数据到 db（从父窗口注入的 window.eraData 获取）
 function loadEraData() {
