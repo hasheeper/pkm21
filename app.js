@@ -2009,6 +2009,15 @@ window.openMapSystem = function() {
         iframe.src = 'map/index.html';
         iframe.onload = function() {
             setupMapCallbacks(iframe);
+            
+            // 加载完成后立即发送当前 ERA 数据
+            if (db && db.player) {
+                iframe.contentWindow.postMessage({
+                    type: 'PKM_ERA_DATA',
+                    data: db
+                }, '*');
+                console.log('[PKM] ✓ 已发送 ERA 数据到新加载的 map iframe');
+            }
         };
     }
     
