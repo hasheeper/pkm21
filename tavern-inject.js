@@ -118,7 +118,21 @@
                 'pointer-events': 'auto'
             });
         
-        // iframe
+        // iframe（预加载用的隐藏 iframe）
+        const hiddenIframe = $('<iframe>')
+            .attr('id', 'pkm-iframe-hidden')
+            .css({
+                'position': 'fixed',
+                'top': '-9999px',
+                'left': '-9999px',
+                'width': '485px',
+                'height': '850px',
+                'border': 'none',
+                'visibility': 'hidden',
+                'pointer-events': 'none'
+            });
+        
+        // 显示用的 iframe（在 overlay 内）
         const iframe = $('<iframe>')
             .attr('id', 'pkm-iframe')
             .css({
@@ -181,7 +195,7 @@
         contentWrapper.append(iframe).append(closeBtn);
         overlay.append(contentWrapper);
         container.append(ball);
-        $('body').append(container).append(overlay);
+        $('body').append(container).append(overlay).append(hiddenIframe);
         
         // ========== ERA 变量获取 ==========
         async function getEraVars() {
@@ -1351,23 +1365,24 @@ ${contextText}
         console.log('[PKM] 初始化位置上下文注入...');
         injectLocationContext();
         
-        // ========== iframe 初始化（预加载）==========
-        let iframeLoaded = false;
+        // ========== iframe 初始化（预加载用隐藏 iframe）==========
+        let hiddenIframeLoaded = false;
+        let visibleIframeLoaded = false;
         
-        // 预加载 iframe（不等待用户点击）
-        iframe.attr('src', PKM_URL);
-        iframe.on('load', async function() {
-            iframeLoaded = true;
-            console.log('[PKM] iframe 已加载');
+        // 预加载隐藏的 iframe（用于后台数据同步）
+        hiddenIframe.attr('src', PKM_URL);
+        hiddenIframe.on('load', async function() {
+            hiddenIframeLoaded = true;
+            console.log('[PKM] 隐藏 iframe 已加载（用于数据同步）');
             
             // 加载完成后立即发送 ERA 数据
             const eraData = await getEraVars();
-            if (eraData && iframe[0].contentWindow) {
-                iframe[0].contentWindow.postMessage({
+            if (eraData && hiddenIframe[0].contentWindow) {
+                hiddenIframe[0].contentWindow.postMessage({
                     type: 'PKM_ERA_DATA',
                     data: eraData
                 }, '*');
-                console.log('[PKM] ✓ ERA 数据已发送到 iframe');
+                console.log('[PKM] ✓ ERA 数据已发送到隐藏 iframe');
             }
         });
         
@@ -1376,8 +1391,23 @@ ${contextText}
             console.log('[PKM] 打开面板');
             overlay.css('display', 'flex');
             
-            // 如果 iframe 已加载，刷新数据
-            if (iframeLoaded) {
+            // 首次打开时加载显示用的 iframe
+            if (!visibleIframeLoaded) {
+                iframe.attr('src', PKM_URL);
+                iframe.on('load', async function() {
+                    visibleIframeLoaded = true;
+                    console.log('[PKM] 显示 iframe 已加载');
+                    
+                    const eraData = await getEraVars();
+                    if (eraData && iframe[0].contentWindow) {
+                        iframe[0].contentWindow.postMessage({
+                            type: 'PKM_ERA_DATA',
+                            data: eraData
+                        }, '*');
+                    }
+                });
+            } else {
+                // 已加载，刷新数据
                 refreshDashboard();
             }
         });
@@ -1402,20 +1432,26 @@ ${contextText}
         
         // ========== 刷新函数 ==========
         async function refreshDashboard() {
-            // 即使面板未初始化也尝试发送（iframe 可能已加载）
             console.log('[PKM] 刷新面板数据...');
             const eraData = await getEraVars();
+            if (!eraData) return;
             
-            if (eraData && iframe[0] && iframe[0].contentWindow) {
+            const message = { type: 'PKM_REFRESH', data: eraData };
+            
+            // 发送到隐藏的 iframe（后台数据同步）
+            if (hiddenIframeLoaded && hiddenIframe[0] && hiddenIframe[0].contentWindow) {
                 try {
-                    iframe[0].contentWindow.postMessage({
-                        type: 'PKM_REFRESH',
-                        data: eraData
-                    }, '*');
-                    console.log('[PKM] ✓ 已发送刷新数据到 iframe');
-                } catch (e) {
-                    // iframe 可能未加载，忽略错误
-                }
+                    hiddenIframe[0].contentWindow.postMessage(message, '*');
+                    console.log('[PKM] ✓ 已发送刷新数据到隐藏 iframe');
+                } catch (e) {}
+            }
+            
+            // 发送到显示的 iframe（如果已加载）
+            if (visibleIframeLoaded && iframe[0] && iframe[0].contentWindow) {
+                try {
+                    iframe[0].contentWindow.postMessage(message, '*');
+                    console.log('[PKM] ✓ 已发送刷新数据到显示 iframe');
+                } catch (e) {}
             }
         }
         
