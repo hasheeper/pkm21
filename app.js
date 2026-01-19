@@ -2000,21 +2000,26 @@ function setupMapCallbacks(iframe) {
             injectLocationContext();
         };
         
-        // 从 ERA 变量设置初始位置
-        const eraLocation = db?.world_state?.location;
-        if (eraLocation && typeof eraLocation === 'object' && typeof eraLocation.x === 'number') {
-            console.log('[PKM] 从 ERA 变量设置地图初始位置:', eraLocation);
-            if (typeof mapWindow.setPlayerPosition === 'function') {
-                mapWindow.setPlayerPosition(eraLocation);
+        // 设置地图加载完成回调
+        mapWindow.onMapReady = function() {
+            console.log('[PKM] 地图加载完成，设置初始位置');
+            
+            // 从 ERA 变量设置初始位置
+            const eraLocation = db?.world_state?.location;
+            if (eraLocation && typeof eraLocation === 'object' && typeof eraLocation.x === 'number') {
+                console.log('[PKM] 从 ERA 变量设置地图初始位置:', eraLocation);
+                if (typeof mapWindow.setPlayerPosition === 'function') {
+                    mapWindow.setPlayerPosition(eraLocation);
+                }
             }
-        }
-        
-        // 获取初始坐标
-        if (typeof mapWindow.getPlayerDisplayCoords === 'function') {
-            const initialCoords = mapWindow.getPlayerDisplayCoords();
-            currentMapCoords = initialCoords;
-            updateCoordsDisplay(initialCoords);
-        }
+            
+            // 获取初始坐标
+            if (typeof mapWindow.getPlayerDisplayCoords === 'function') {
+                const initialCoords = mapWindow.getPlayerDisplayCoords();
+                currentMapCoords = initialCoords;
+                updateCoordsDisplay(initialCoords);
+            }
+        };
         
         console.log('[PKM] MAP 回调设置完成');
     } catch (e) {

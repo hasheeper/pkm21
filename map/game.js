@@ -126,8 +126,14 @@ window.setPlayerPosition = function(displayCoords) {
     playerState.gy = internal.gy;
     console.log('[MAP] 设置玩家位置:', displayCoords, '-> 内部坐标:', internal);
     updatePlayerCoordsUI();
-    centerCamera(); // 重新居中相机到玩家位置
+    // 只有在地图数据加载完成后才居中相机
+    if (levelData && levelData.pxWid) {
+        centerCamera();
+    }
 };
+
+// 地图加载完成后的回调（供外部使用）
+window.onMapReady = null;
 
 // 缓存与状态 - 延迟初始化以确保 DOM 准备好
 let canvas, ctx, tooltip, toggleContainer, playerControls, playerCoordsEl;
@@ -335,6 +341,12 @@ function setupGame() {
 
     // 6. Loop
     requestAnimationFrame(renderLoop);
+    
+    // 7. 触发地图加载完成回调
+    console.log('[MAP] ✓ 地图加载完成');
+    if (typeof window.onMapReady === 'function') {
+        window.onMapReady();
+    }
 }
 
 /**
