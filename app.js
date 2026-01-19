@@ -2019,6 +2019,10 @@ function setupMapCallbacks(iframe) {
                 currentMapCoords = initialCoords;
                 updateCoordsDisplay(initialCoords);
             }
+            
+            // 初始注入位置上下文
+            console.log('[PKM] 触发初始位置上下文注入');
+            injectLocationContext();
         };
         
         console.log('[PKM] MAP 回调设置完成');

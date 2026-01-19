@@ -297,20 +297,26 @@
             // 处理位置上下文注入请求
             if (event.data.type === 'PKM_INJECT_LOCATION') {
                 const { id, content, position, depth } = event.data;
-                console.log('[PKM] 收到位置上下文注入请求');
+                console.log('[PKM] 收到位置上下文注入请求:', id);
                 
                 try {
                     // 先清除旧注入
                     if (typeof uninjectPrompts === 'function') {
-                        uninjectPrompts([id]);
+                        try {
+                            uninjectPrompts([id]);
+                        } catch (e) {
+                            // 忽略清除失败
+                        }
                     }
                     
-                    // 注入新内容
+                    // 注入新内容（参考 pkm-tavern-plugin.js 的格式）
                     if (typeof injectPrompts === 'function') {
                         injectPrompts([{
                             id: id,
                             position: position || 'after_wi_scan',
                             depth: depth || 0,
+                            role: 'system',
+                            should_scan: false,
                             content: content
                         }]);
                         console.log('[PKM] ✓ 位置上下文已注入到世界书');
@@ -325,7 +331,7 @@
             // 处理清除注入请求
             if (event.data.type === 'PKM_CLEAR_INJECTION') {
                 const { id } = event.data;
-                console.log('[PKM] 收到清除注入请求');
+                console.log('[PKM] 收到清除注入请求:', id);
                 
                 try {
                     if (typeof uninjectPrompts === 'function') {
