@@ -937,6 +937,286 @@
             }
         };
         
+        // ========== 宝可梦区域刷新系统（ERA 注入版）==========
+        const PokemonSpawnSystem = {
+            // 威胁度定义
+            THREAT_PEACE: 6,
+            
+            // 区域名称映射（与 pokemonEngine.js 一致）
+            BIOME_ZONE_MAPPING: {
+                "Arcadia_Lawns": "Aether_Admin_Zone",
+                "Zenith_HQ": "Aether_Admin_Zone",
+                "Lusamine_Gardens": "Aether_Admin_Zone",
+                "Academic_Plaza": "Aether_Admin_Zone",
+                "Royal_Academy": "Aether_Admin_Zone",
+                "Zero_Halo_Moat": "Zero_Halo_Moat",
+                "Pearl_Resort": "Sapphire_Strand",
+                "Sapphire_Marina": "Sapphire_Strand",
+                "Sunflora_Farmsteads": "Aroma_Meadow",
+                "Marina_Port_Town": "Breeze_Woodlands",
+                "Jade_Canopy": "Jade_Canopy",
+                "Deep_Root_Hollow": "Deep_Root_Hollow",
+                "Breeze_Woodlands": "Breeze_Woodlands",
+                "Hermit_Sands": "Hermit_Sands",
+                "Golden_Horizon": "Golden_Horizon",
+                "Electro_Avenue": "Radiant_Plains",
+                "Cyber_Shopping_District": "Radiant_Plains",
+                "Frost_Smoke_City": "Silent_Tundra",
+                "Grim_Borough": "Cinder_Moor",
+                "Crimson_Forge_City": "Crimson_Badlands",
+                "Titan_Mining_site": "Crimson_Badlands",
+                "Savanna_Outlands": "Savanna_Outlands",
+                "Aroma_Meadow": "Aroma_Meadow",
+                "Radiant_Plains": "Radiant_Plains"
+            },
+            
+            // 检查是否为和平区域
+            isPeaceZone(threat) {
+                return threat === this.THREAT_PEACE || threat === 0;
+            },
+            
+            // 根据威胁度决定稀有度池
+            getRarityPool(threat) {
+                if (this.isPeaceZone(threat)) return null;
+                
+                const roll = Math.random() * 100;
+                
+                if (threat === 1) {
+                    if (roll < 90) return 'common';
+                    if (roll < 99) return 'uncommon';
+                    return 'rare';
+                } else if (threat === 2) {
+                    if (roll < 75) return 'common';
+                    if (roll < 93) return 'uncommon';
+                    if (roll < 99) return 'rare';
+                    return 'boss';
+                } else if (threat === 3) {
+                    if (roll < 55) return 'common';
+                    if (roll < 83) return 'uncommon';
+                    if (roll < 96) return 'rare';
+                    return 'boss';
+                } else if (threat === 4) {
+                    if (roll < 35) return 'common';
+                    if (roll < 67) return 'uncommon';
+                    if (roll < 90) return 'rare';
+                    return 'boss';
+                } else {
+                    if (roll < 20) return 'common';
+                    if (roll < 50) return 'uncommon';
+                    if (roll < 80) return 'rare';
+                    return 'boss';
+                }
+            },
+            
+            // 根据威胁度计算等级范围
+            getLevelRange(threat) {
+                const ranges = {
+                    1: { min: 3, max: 10 },
+                    2: { min: 8, max: 18 },
+                    3: { min: 15, max: 28 },
+                    4: { min: 25, max: 42 },
+                    5: { min: 38, max: 60 }
+                };
+                return ranges[threat] || ranges[1];
+            },
+            
+            // 解析区域名称
+            resolveZoneName(biomeZone, surfaceType) {
+                if (!biomeZone || biomeZone === '' || biomeZone === 'Unknown') {
+                    const waterSurfaces = ['Fresh_Water', 'Shallow_Sea', 'Deep_Sea', 'Glacial_Water', 'Sewage'];
+                    if (waterSurfaces.includes(surfaceType)) {
+                        if (surfaceType === 'Deep_Sea') return 'Equatorial_Dark_Zone';
+                        if (surfaceType === 'Shallow_Sea') return 'Crystal_Lagoon';
+                        if (surfaceType === 'Fresh_Water') return 'Zero_Halo_Moat';
+                        return 'Crystal_Lagoon';
+                    }
+                    return 'Aether_Admin_Zone';
+                }
+                
+                if (this.BIOME_ZONE_MAPPING[biomeZone]) {
+                    return this.BIOME_ZONE_MAPPING[biomeZone];
+                }
+                
+                return biomeZone;
+            },
+            
+            // 从池中随机选择一个宝可梦
+            pickFromPool(pool, levelRange) {
+                if (!pool || pool.length === 0) return null;
+                
+                const idx = Math.floor(Math.random() * pool.length);
+                const entry = pool[idx];
+                
+                let pokemonId, minLevel;
+                if (typeof entry === 'string') {
+                    pokemonId = entry;
+                    minLevel = levelRange.min;
+                } else {
+                    pokemonId = entry.id;
+                    minLevel = entry.min || levelRange.min;
+                }
+                
+                const effectiveMin = Math.max(minLevel, levelRange.min);
+                const effectiveMax = Math.max(levelRange.max, effectiveMin);
+                const level = Math.floor(Math.random() * (effectiveMax - effectiveMin + 1)) + effectiveMin;
+                
+                return { id: pokemonId, level };
+            },
+            
+            // 生成单个格子的宝可梦列表
+            spawnForGrid(gx, gy, spawnTablesData) {
+                const gridInfo = LocationContextBackend.getGridInfo(gx, gy);
+                const entities = LocationContextBackend.getEntitiesAtGrid(gx, gy);
+                
+                const threat = gridInfo.threat;
+                const surfaceType = gridInfo.surface || 'Pavement';
+                const biomeZone = entities.biomeZone || 'Unknown';
+                
+                // 和平区域无宝可梦
+                if (this.isPeaceZone(threat)) {
+                    return [];
+                }
+                
+                const resolvedZone = this.resolveZoneName(biomeZone, surfaceType);
+                
+                let zoneTable = spawnTablesData[resolvedZone];
+                if (!zoneTable) {
+                    zoneTable = spawnTablesData['Aether_Admin_Zone'];
+                }
+                if (!zoneTable) return [];
+                
+                let surfacePool = zoneTable[surfaceType];
+                if (!surfacePool) {
+                    surfacePool = zoneTable['Standard_Grass'] || zoneTable['Pavement'] || Object.values(zoneTable)[0];
+                }
+                if (!surfacePool) return [];
+                
+                const count = 4 + Math.floor(Math.random() * 2);
+                const results = [];
+                const levelRange = this.getLevelRange(threat);
+                
+                for (let i = 0; i < count; i++) {
+                    const rarity = this.getRarityPool(threat);
+                    if (!rarity) continue;
+                    
+                    let pool = surfacePool[rarity];
+                    if (!pool || pool.length === 0) {
+                        pool = surfacePool['common'];
+                    }
+                    if (!pool || pool.length === 0) continue;
+                    
+                    const pokemon = this.pickFromPool(pool, levelRange);
+                    if (pokemon) {
+                        results.push({
+                            ...pokemon,
+                            rarity,
+                            biome: biomeZone,
+                            surface: surfaceType,
+                            threat
+                        });
+                    }
+                }
+                
+                results.sort((a, b) => a.level - b.level);
+                return results;
+            },
+            
+            // 生成位置键
+            getLocationKey(gx, gy) {
+                return `${gx}_${gy}`;
+            },
+            
+            // 为玩家周围区域生成宝可梦（半径2格）
+            async generateForNearbyGrids(x, y, eraVars) {
+                await LocationContextBackend.loadData();
+                
+                const spawnTablesData = LocationContextBackend.spawnTablesData;
+                if (!spawnTablesData) {
+                    console.warn('[PKM] SPAWN_TABLES_DATA 未加载');
+                    return null;
+                }
+                
+                const internal = LocationContextBackend.toInternalCoords(x, y);
+                const centerGx = internal.gx;
+                const centerGy = internal.gy;
+                
+                // 获取当前 ERA 中已存在的宝可梦区域
+                const existingSpawns = eraVars?.world_state?.pokemon_spawns || {};
+                
+                // 半径2格的所有格子（与地标范围一致）
+                const offsets = [
+                    { dx: 0, dy: 0 },   // 当前格子
+                    { dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
+                    { dx: -1, dy: -1 }, { dx: 1, dy: -1 }, { dx: -1, dy: 1 }, { dx: 1, dy: 1 },
+                    { dx: 0, dy: -2 }, { dx: 0, dy: 2 }, { dx: -2, dy: 0 }, { dx: 2, dy: 0 }
+                ];
+                
+                const newSpawns = {};
+                
+                for (const { dx, dy } of offsets) {
+                    const gx = centerGx + dx;
+                    const gy = centerGy + dy;
+                    const key = this.getLocationKey(gx, gy);
+                    
+                    // 只增不改：如果已存在则跳过
+                    if (existingSpawns[key]) {
+                        continue;
+                    }
+                    
+                    // 生成该格子的宝可梦
+                    const pokemonList = this.spawnForGrid(gx, gy, spawnTablesData);
+                    if (pokemonList.length > 0) {
+                        newSpawns[key] = pokemonList;
+                    }
+                }
+                
+                return Object.keys(newSpawns).length > 0 ? newSpawns : null;
+            },
+            
+            // 获取当前格子的宝可梦（用于位置上下文显示）
+            getCurrentGridPokemon(x, y, eraVars) {
+                const internal = LocationContextBackend.toInternalCoords(x, y);
+                const key = this.getLocationKey(internal.gx, internal.gy);
+                
+                const spawns = eraVars?.world_state?.pokemon_spawns || {};
+                return spawns[key] || [];
+            }
+        };
+        
+        // ========== ERA 变量操作函数 ==========
+        async function eraInsertPokemonSpawns(newSpawns) {
+            if (!newSpawns || Object.keys(newSpawns).length === 0) return;
+            
+            const insertData = {
+                world_state: {
+                    pokemon_spawns: newSpawns
+                }
+            };
+            
+            // 使用 eventEmit 发送 ERA VariableInsert
+            if (typeof eventEmit === 'function') {
+                eventEmit('era:variableInsert', insertData);
+                console.log('[PKM] ✓ 宝可梦区域已注入 ERA:', Object.keys(newSpawns));
+            }
+        }
+        
+        async function eraDeletePokemonSpawns() {
+            // 删除整个 pokemon_spawns 对象（一天结束时刷新）
+            const deleteData = {
+                world_state: {
+                    pokemon_spawns: {}
+                }
+            };
+            
+            if (typeof eventEmit === 'function') {
+                eventEmit('era:variableDelete', deleteData);
+                console.log('[PKM] ✓ 宝可梦区域已清除（每日刷新）');
+            }
+        }
+        
+        // 记录上次的游戏日期，用于检测日期变化
+        let lastGameDay = null;
+        
         // ========== 位置上下文注入函数 ==========
         async function injectLocationContext() {
             try {
@@ -956,12 +1236,60 @@
                     return;
                 }
                 
+                // ========== 检测日期变化，清除宝可梦刷新 ==========
+                const currentDay = eraVars?.world_state?.time?.day || eraVars?.game_time?.day;
+                if (lastGameDay !== null && currentDay !== null && currentDay > lastGameDay) {
+                    console.log('[PKM] 检测到日期变化，清除宝可梦刷新');
+                    await eraDeletePokemonSpawns();
+                }
+                lastGameDay = currentDay;
+                
+                // ========== 为玩家周围区域生成宝可梦（只增不改）==========
+                const newSpawns = await PokemonSpawnSystem.generateForNearbyGrids(
+                    location.x, 
+                    location.y, 
+                    eraVars
+                );
+                if (newSpawns) {
+                    await eraInsertPokemonSpawns(newSpawns);
+                }
+                
+                // ========== 获取当前格子的宝可梦（从 ERA 读取）==========
+                const currentPokemon = PokemonSpawnSystem.getCurrentGridPokemon(
+                    location.x, 
+                    location.y, 
+                    eraVars
+                );
+                
                 // 生成完整的位置上下文文本
-                const contextText = LocationContextBackend.generateContextText(
+                let contextText = LocationContextBackend.generateContextText(
                     location.x, 
                     location.y, 
                     location.quadrant || 'NE'
                 );
+                
+                // 添加当前格子的宝可梦信息
+                if (currentPokemon && currentPokemon.length > 0) {
+                    const pokemonLines = [
+                        '',
+                        '───────────────────────────────────────',
+                        '【附近宝可梦】'
+                    ];
+                    for (const poke of currentPokemon) {
+                        const levelStr = poke.level ? `Lv.${poke.level}` : '';
+                        const rarityStr = poke.rarity ? `(${poke.rarity})` : '';
+                        pokemonLines.push(`  ${poke.id} ${levelStr} ${rarityStr}`);
+                    }
+                    // 在【周围环境】之前插入
+                    const insertPoint = contextText.indexOf('【周围环境】');
+                    if (insertPoint > 0) {
+                        const beforeEnv = contextText.substring(0, insertPoint - 1);
+                        const afterEnv = contextText.substring(insertPoint - 1);
+                        contextText = beforeEnv + pokemonLines.join('\n') + '\n' + afterEnv;
+                    } else {
+                        contextText += '\n' + pokemonLines.join('\n');
+                    }
+                }
                 
                 const promptContent = `<location_context>
 ${contextText}
