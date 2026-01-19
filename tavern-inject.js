@@ -380,9 +380,9 @@
             
             // 显示坐标转内部格子坐标（与 game.js 的 toInternalCoords 一致）
             toInternalCoords(displayX, displayY) {
-                // 地图中心点（内部坐标）
-                const MAP_CENTER_X = 25;
-                const MAP_CENTER_Y = 25;
+                // 地图中心点（内部坐标）- 与 map/game.js 保持一致
+                const MAP_CENTER_X = 26;
+                const MAP_CENTER_Y = 26;
                 
                 // X轴：跳过0的逆运算
                 let x = displayX;
