@@ -210,6 +210,32 @@ function getParentWindow() {
     }
 }
 
+// ========== 监听来自酒馆的 postMessage ==========
+window.addEventListener('message', function(event) {
+    if (!event.data || !event.data.type) return;
+    
+    if (event.data.type === 'PKM_ERA_DATA') {
+        console.log('[PKM] 收到 ERA 数据 (postMessage)');
+        if (event.data.data && event.data.data.player) {
+            db = event.data.data;
+            window.eraData = db;
+            console.log('[PKM] ✓ ERA 数据已更新', db.player?.name);
+            // 刷新界面
+            if (typeof renderDashboard === 'function') renderDashboard();
+            if (typeof renderPartyList === 'function') renderPartyList();
+        }
+    } else if (event.data.type === 'PKM_REFRESH') {
+        console.log('[PKM] 收到刷新请求 (postMessage)');
+        if (event.data.data && event.data.data.player) {
+            db = event.data.data;
+            window.eraData = db;
+            // 刷新界面
+            if (typeof renderDashboard === 'function') renderDashboard();
+            if (typeof renderPartyList === 'function') renderPartyList();
+        }
+    }
+});
+
 // 加载 ERA 数据到 db（从父窗口注入的 window.eraData 获取）
 function loadEraData() {
     console.log('[PKM] 正在加载 ERA 数据...');

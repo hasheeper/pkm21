@@ -35,3 +35,10 @@ window.toggleLeader = function(event, slotStr) {
         console.warn('[PKM UI] pkmSetLeaderCallback 不可用');
     }
 };
+
+// 初始化
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof initApp === 'function') {
+        initApp();
+    }
+});
