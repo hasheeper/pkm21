@@ -27,12 +27,18 @@ window.toggleLeader = function(event, slotStr) {
     }
     console.log(`[PKM UI] Request Set Leader -> ${slotStr}`);
     
-    // 调用父窗口注入到 iframe window 的回调函数
+    // 优先使用直接回调（build-iframe.js 注入方式）
     if (window.pkmSetLeaderCallback) {
         console.log('[PKM UI] 调用 pkmSetLeaderCallback');
         window.pkmSetLeaderCallback(slotStr);
     } else {
-        console.warn('[PKM UI] pkmSetLeaderCallback 不可用');
+        // 降级：使用 postMessage（tavern-inject.js 跨域方式）
+        console.log('[PKM UI] 使用 postMessage 发送 Leader 切换请求');
+        const parentWin = window.parent || window;
+        parentWin.postMessage({
+            type: 'PKM_SET_LEADER',
+            data: { targetSlot: slotStr }
+        }, '*');
     }
 };
 

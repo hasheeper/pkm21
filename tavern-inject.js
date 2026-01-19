@@ -1568,7 +1568,174 @@ ${contextText}
                     console.error('[PKM] 清除注入失败:', e);
                 }
             }
+            
+            // 处理 Leader 切换请求
+            if (event.data.type === 'PKM_SET_LEADER') {
+                const { targetSlot } = event.data.data || {};
+                console.log('[PKM] 收到 Leader 切换请求:', targetSlot);
+                handleLeaderToggle(targetSlot);
+            }
+            
+            // 处理 Settings 更新请求
+            if (event.data.type === 'PKM_UPDATE_SETTINGS') {
+                const settingsData = event.data.data;
+                console.log('[PKM] 收到 Settings 更新请求:', settingsData);
+                handleSettingsToggle(settingsData);
+            }
         });
+        
+        // ========== Leader 切换处理 ==========
+        let leaderToggleLock = false;
+        
+        async function handleLeaderToggle(targetSlot) {
+            if (leaderToggleLock) {
+                console.log('[PKM] [LEADER] 正在处理中，忽略重复请求');
+                return;
+            }
+            leaderToggleLock = true;
+            
+            try {
+                console.log(`[PKM] [LEADER] 收到切换请求: ${targetSlot}`);
+                
+                // 1. 获取当前队伍数据
+                const eraVars = await getEraVars();
+                const party = eraVars?.player?.party || {};
+                
+                if (!party || Object.keys(party).length === 0) {
+                    console.warn('[PKM] [LEADER] 队伍为空，无法切换');
+                    return;
+                }
+                
+                // 2. 构建 VariableEdit JSON：一个 true，其余 false
+                const variableEditData = {
+                    player: {
+                        party: {}
+                    }
+                };
+                
+                // 遍历所有槽位，设置 isLead
+                for (let i = 1; i <= 6; i++) {
+                    const slotKey = `slot${i}`;
+                    const pokemon = party[slotKey];
+                    
+                    // 只有非空槽位才设置 isLead
+                    if (pokemon && pokemon.name) {
+                        variableEditData.player.party[slotKey] = {
+                            isLead: slotKey === targetSlot
+                        };
+                    }
+                }
+                
+                const variableEditJson = JSON.stringify(variableEditData, null, 2);
+                const variableEditBlock = `<VariableEdit>\n${variableEditJson}\n</VariableEdit>`;
+                
+                console.log('[PKM] [LEADER] 生成 VariableEdit:', variableEditBlock);
+                
+                // 3. 获取最近一楼消息
+                const lastMessageId = getLastMessageId();
+                const messages = getChatMessages(lastMessageId);
+                
+                if (!messages || messages.length === 0) {
+                    console.warn('[PKM] [LEADER] 无法获取最近消息');
+                    return;
+                }
+                
+                const msg = messages[0];
+                let content = msg.message || '';
+                
+                // 4. 直接在末尾追加新的 VariableEdit（不删除现有标签）
+                content = content.trim() + '\n\n' + variableEditBlock;
+                console.log('[PKM] [LEADER] 追加新 VariableEdit 到末尾');
+                
+                // 5. 更新消息
+                await setChatMessages([{
+                    message_id: lastMessageId,
+                    message: content
+                }], { refresh: 'affected' });
+                
+                console.log(`[PKM] [LEADER] ✓ 已注入 Leader 切换到消息 #${lastMessageId}`);
+                
+                // 6. 立即触发 ERA 变量更新（让前端立即刷新）
+                if (typeof eventEmit !== 'undefined') {
+                    eventEmit('era:updateByObject', variableEditData);
+                    console.log('[PKM] [LEADER] ✓ ERA 变量已更新');
+                }
+                
+                // 7. 刷新面板（延迟执行，避免和锁冲突）
+                setTimeout(() => refreshDashboard(), 100);
+                
+            } catch (e) {
+                console.error('[PKM] [LEADER] 切换失败:', e);
+            } finally {
+                // 1秒后解锁，防止快速连续点击
+                setTimeout(() => { leaderToggleLock = false; }, 1000);
+            }
+        }
+        
+        // ========== Settings 切换处理 ==========
+        let settingsToggleLock = false;
+        
+        async function handleSettingsToggle(settingsData) {
+            if (settingsToggleLock) {
+                console.log('[PKM] [SETTINGS] 正在处理中，忽略重复请求');
+                return;
+            }
+            settingsToggleLock = true;
+            
+            try {
+                console.log('[PKM] [SETTINGS] 收到设置更新:', settingsData);
+                
+                // 1. 构建 VariableEdit JSON
+                const variableEditData = {
+                    settings: settingsData
+                };
+                
+                const variableEditJson = JSON.stringify(variableEditData, null, 2);
+                const variableEditBlock = `<VariableEdit>\n${variableEditJson}\n</VariableEdit>`;
+                
+                console.log('[PKM] [SETTINGS] 生成 VariableEdit:', variableEditBlock);
+                
+                // 2. 获取最近一楼消息
+                const lastMessageId = getLastMessageId();
+                const messages = getChatMessages(lastMessageId);
+                
+                if (!messages || messages.length === 0) {
+                    console.warn('[PKM] [SETTINGS] 无法获取最近消息');
+                    return;
+                }
+                
+                const msg = messages[0];
+                let content = msg.message || '';
+                
+                // 3. 直接在末尾追加新的 VariableEdit
+                content = content.trim() + '\n\n' + variableEditBlock;
+                console.log('[PKM] [SETTINGS] 追加新 VariableEdit 到末尾');
+                
+                // 4. 更新消息
+                await setChatMessages([{
+                    message_id: lastMessageId,
+                    message: content
+                }], { refresh: 'affected' });
+                
+                console.log(`[PKM] [SETTINGS] ✓ 已注入 Settings 到消息 #${lastMessageId}`);
+                
+                // 5. 立即触发 ERA 变量更新
+                if (typeof eventEmit !== 'undefined') {
+                    eventEmit('era:updateByObject', variableEditData);
+                    console.log('[PKM] [SETTINGS] ✓ ERA 变量已更新');
+                }
+                
+            } catch (e) {
+                console.error('[PKM] [SETTINGS] 更新失败:', e);
+            } finally {
+                setTimeout(() => { settingsToggleLock = false; }, 500);
+            }
+        }
+        
+        // ========== 暴露全局函数 ==========
+        window.pkmSetLeader = handleLeaderToggle;
+        window.pkmUpdateSettings = handleSettingsToggle;
+        console.log('[PKM] ✓ window.pkmSetLeader 和 window.pkmUpdateSettings 已暴露');
         
         console.log('[PKM] ✓ 悬浮球已加载，点击打开 PKM 面板');
     });
