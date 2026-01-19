@@ -462,13 +462,17 @@
                 const regionInfo = this.REGIONS[regionId];
                 const regionShort = regionInfo?.short || '?';
                 
-                // 转换为内部坐标并获取实体
+                // 转换为内部坐标并获取实体和格子信息
                 const internal = this.toInternalCoords(x, y);
                 const entities = this.getEntitiesAtGrid(internal.gx, internal.gy);
+                const gridInfo = this.getGridInfo(internal.gx, internal.gy);
                 
                 lines.push('═══════════════════════════════════════');
                 lines.push('【当前位置】');
                 lines.push(`坐标: [${x}, ${y}] ${regionShort}`);
+                lines.push(`地表: ${gridInfo.surface || '未知'}`);
+                lines.push(`可通行: ${gridInfo.traversable ? '是' : '否'}`);
+                lines.push(`威胁度: ${gridInfo.threat} (${this.getThreatLabel(gridInfo.threat)})`);
                 
                 // 大区信息
                 if (regionInfo) {
@@ -571,21 +575,6 @@
                     if (lavaDesc?.desc) lines.push(`  ${lavaDesc.desc}`);
                 }
                 
-                // ========== 附近宝可梦（基于生态区生成）==========
-                if (this.spawnTablesData && entities.biomeZone) {
-                    const pokemonList = this.generateNearbyPokemon(entities.biomeZone);
-                    if (pokemonList && pokemonList.length > 0) {
-                        lines.push('');
-                        lines.push('───────────────────────────────────────');
-                        lines.push('【附近宝可梦】');
-                        for (const poke of pokemonList) {
-                            const levelStr = poke.level ? `Lv.${poke.level}` : '';
-                            const rarityStr = poke.rarity ? `(${poke.rarity})` : '';
-                            lines.push(`  ${poke.id} ${levelStr} ${rarityStr}`);
-                        }
-                    }
-                }
-                
                 // ========== 周围环境（半径2格）==========
                 lines.push('');
                 lines.push('───────────────────────────────────────');
@@ -656,6 +645,23 @@
                     }
                     for (const f of Object.values(facilityGrouped)) {
                         lines.push(`    ${f.dirs.join('、')}: [${f.type}] ${f.name}`);
+                    }
+                }
+                
+                // ========== 本区块地标（Biome_Zone）==========
+                const biomeZoneName = entities.biomeZone;
+                if (biomeZoneName) {
+                    lines.push('');
+                    lines.push('───────────────────────────────────────');
+                    lines.push(`【本区块地标】(${biomeZoneName})`);
+                    
+                    const biomeLandmarks = this.getBiomeZoneLandmarks(biomeZoneName, x, y);
+                    if (biomeLandmarks.length > 0) {
+                        for (const lm of biomeLandmarks.slice(0, 5)) {
+                            lines.push(`  • ${lm.name} [${lm.center[0]}, ${lm.center[1]}] (~${lm.distance}格)`);
+                        }
+                    } else {
+                        lines.push('  (无已知地标)');
                     }
                 }
                 
@@ -769,6 +775,28 @@
                     }
                 }
                 
+                landmarks.sort((a, b) => a.distance - b.distance);
+                return landmarks;
+            },
+            
+            // 获取当前 Biome_Zone 内的地标列表
+            getBiomeZoneLandmarks(currentBiomeZone, x, y) {
+                const landmarks = [];
+                
+                // 从 regionZones 中查找属于当前生态区的地标
+                for (const [zoneName, zoneData] of Object.entries(this.regionZones)) {
+                    if (zoneData.center_point) {
+                        const dist = Math.abs(zoneData.center_point[0] - x) + Math.abs(zoneData.center_point[1] - y);
+                        landmarks.push({
+                            name: zoneName,
+                            center: zoneData.center_point,
+                            distance: dist,
+                            hasDescription: !!(zoneData.exterior_view || zoneData.internal_reality)
+                        });
+                    }
+                }
+                
+                // 按距离排序
                 landmarks.sort((a, b) => a.distance - b.distance);
                 return landmarks;
             },
