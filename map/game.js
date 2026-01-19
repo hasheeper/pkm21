@@ -137,9 +137,10 @@ window.onMapReady = null;
 
 // ========== 接收酒馆 ERA 数据（宝可梦刷新等）==========
 window.addEventListener('message', function(event) {
-    if (event.data && event.data.type === 'PKM_ERA_DATA') {
+    // 处理 PKM_ERA_DATA（初始化）和 PKM_REFRESH（刷新）
+    if (event.data && (event.data.type === 'PKM_ERA_DATA' || event.data.type === 'PKM_REFRESH')) {
         const eraData = event.data.data;
-        console.log('[MAP] 收到 ERA 数据:', eraData);
+        console.log('[MAP] 收到 ERA 数据:', event.data.type, eraData);
         
         // 更新宝可梦缓存（从 ERA 读取）
         if (window.PokemonSpawnCache && eraData?.world_state?.pokemon_spawns) {
@@ -151,6 +152,15 @@ window.addEventListener('message', function(event) {
             const loc = eraData.world_state.location;
             if (typeof loc.x === 'number' && typeof loc.y === 'number') {
                 window.setPlayerPosition({ x: loc.x, y: loc.y });
+                
+                // 同步更新 TacticalSystem 的 playerGrid
+                if (window.TacticalSystem && window.TacticalSystem.isActive) {
+                    const internal = toInternalCoords(loc.x, loc.y);
+                    window.TacticalSystem.playerGrid = { x: internal.gx, y: internal.gy };
+                    window.TacticalSystem.anchor = { x: internal.gx, y: internal.gy };
+                    window.TacticalSystem.render();
+                    console.log('[MAP] TacticalSystem 位置已同步:', internal);
+                }
             }
         }
     }
