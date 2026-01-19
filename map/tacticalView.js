@@ -262,15 +262,34 @@ const TacticalSystem = {
             }
             this.checkHover(e.clientX, e.clientY);
         };
+        this._wheel = e => {
+            if (this._pokemonPanelContentRect && this._pokemonPanelContentRect.maxScroll > 0) {
+                const rect = this._pokemonPanelContentRect;
+                const canvas = this.ctx.canvas;
+                const canvasRect = canvas.getBoundingClientRect();
+                const mx = e.clientX - canvasRect.left;
+                const my = e.clientY - canvasRect.top;
+                
+                if (mx >= rect.x && mx <= rect.x + rect.w && 
+                    my >= rect.y && my <= rect.y + rect.h) {
+                    e.preventDefault();
+                    this._pokemonScrollOffset += e.deltaY * 0.5;
+                    this._pokemonScrollOffset = Math.max(0, Math.min(this._pokemonScrollOffset, rect.maxScroll));
+                    this.render();
+                }
+            }
+        };
 
         window.addEventListener('mousedown', this._down);
         window.addEventListener('mouseup', this._up);
         window.addEventListener('mousemove', this._move);
+        window.addEventListener('wheel', this._wheel, { passive: false });
     },
     unbindEvents: function() {
         if(this._down) window.removeEventListener('mousedown', this._down);
         if(this._up) window.removeEventListener('mouseup', this._up);
         if(this._move) window.removeEventListener('mousemove', this._move);
+        if(this._wheel) window.removeEventListener('wheel', this._wheel);
     },
 
     checkHover: function(mx, my) {
@@ -1107,6 +1126,7 @@ const TacticalSystem = {
     // ========== 面板折叠状态 ==========
     _infoPanelCollapsed: false, // 信息面板折叠状态
     _pokemonPanelCollapsed: false, // 宝可梦面板折叠状态
+    _pokemonScrollOffset: 0, // 宝可梦面板滚动偏移
     _pokemonImages: null, // 图片缓存（初始化时创建）
     
     _getPokemonImageCache: function() {
@@ -1211,16 +1231,25 @@ const TacticalSystem = {
         const itemWidth = (panelW - 24 - itemGap) / cols;
         const startX = panelX + 12;
 
+        const totalRows = Math.ceil(pokemonList.length / cols);
+        const totalContentH = totalRows * (itemH + itemGap);
+        const maxScroll = Math.max(0, totalContentH - listH + 20);
+        this._pokemonScrollOffset = Math.max(0, Math.min(this._pokemonScrollOffset, maxScroll));
+
         ctx.save();
         ctx.beginPath();
         ctx.rect(panelX, panelY + headerH, panelW, listH);
         ctx.clip();
 
-        pokemonList.slice(0, 8).forEach((p, i) => {
+        pokemonList.forEach((p, i) => {
             const col = i % cols;
             const row = Math.floor(i / cols);
             const itemX = startX + col * (itemWidth + itemGap);
-            const itemY = contentY + row * (itemH + itemGap);
+            const itemY = contentY + row * (itemH + itemGap) - this._pokemonScrollOffset;
+
+            if (itemY + itemH < contentY || itemY > panelY + headerH + listH) {
+                return;
+            }
 
             ctx.fillStyle = "rgba(0,0,0,0.02)";
             ctx.strokeStyle = "rgba(0,0,0,0.04)";
@@ -1281,19 +1310,33 @@ const TacticalSystem = {
 
         ctx.restore();
 
-        if (pokemonList.length > 4) {
-            const scrollIndicatorY = panelY + totalH - 8;
-            ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
+        if (maxScroll > 0) {
+            const scrollBarH = listH - 20;
+            const scrollBarY = panelY + headerH + 10;
+            const scrollBarX = panelX + panelW - 8;
+            
+            ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
             ctx.beginPath();
-            ctx.arc(panelX + panelW/2 - 8, scrollIndicatorY, 2, 0, Math.PI*2);
+            if (ctx.roundRect) ctx.roundRect(scrollBarX, scrollBarY, 3, scrollBarH, 1.5);
+            else ctx.fillRect(scrollBarX, scrollBarY, 3, scrollBarH);
             ctx.fill();
+            
+            const thumbH = Math.max(20, (listH / totalContentH) * scrollBarH);
+            const thumbY = scrollBarY + (this._pokemonScrollOffset / maxScroll) * (scrollBarH - thumbH);
+            ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
             ctx.beginPath();
-            ctx.arc(panelX + panelW/2, scrollIndicatorY, 2, 0, Math.PI*2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(panelX + panelW/2 + 8, scrollIndicatorY, 2, 0, Math.PI*2);
+            if (ctx.roundRect) ctx.roundRect(scrollBarX, thumbY, 3, thumbH, 1.5);
+            else ctx.fillRect(scrollBarX, thumbY, 3, thumbH);
             ctx.fill();
         }
+
+        this._pokemonPanelContentRect = { 
+            x: panelX, 
+            y: panelY + headerH, 
+            w: panelW, 
+            h: listH,
+            maxScroll: maxScroll
+        };
 
         ctx.textAlign = "left";
     },
