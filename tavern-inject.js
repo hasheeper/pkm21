@@ -290,6 +290,54 @@
             });
         }
         
+        // ========== 监听 iframe 的 postMessage 请求 ==========
+        window.addEventListener('message', function(event) {
+            if (!event.data || !event.data.type) return;
+            
+            // 处理位置上下文注入请求
+            if (event.data.type === 'PKM_INJECT_LOCATION') {
+                const { id, content, position, depth } = event.data;
+                console.log('[PKM] 收到位置上下文注入请求');
+                
+                try {
+                    // 先清除旧注入
+                    if (typeof uninjectPrompts === 'function') {
+                        uninjectPrompts([id]);
+                    }
+                    
+                    // 注入新内容
+                    if (typeof injectPrompts === 'function') {
+                        injectPrompts([{
+                            id: id,
+                            position: position || 'after_wi_scan',
+                            depth: depth || 0,
+                            content: content
+                        }]);
+                        console.log('[PKM] ✓ 位置上下文已注入到世界书');
+                    } else {
+                        console.warn('[PKM] injectPrompts API 不可用');
+                    }
+                } catch (e) {
+                    console.error('[PKM] 位置上下文注入失败:', e);
+                }
+            }
+            
+            // 处理清除注入请求
+            if (event.data.type === 'PKM_CLEAR_INJECTION') {
+                const { id } = event.data;
+                console.log('[PKM] 收到清除注入请求');
+                
+                try {
+                    if (typeof uninjectPrompts === 'function') {
+                        uninjectPrompts([id]);
+                        console.log('[PKM] ✓ 注入已清除');
+                    }
+                } catch (e) {
+                    console.error('[PKM] 清除注入失败:', e);
+                }
+            }
+        });
+        
         console.log('[PKM] ✓ 悬浮球已加载，点击打开 PKM 面板');
     });
 })();

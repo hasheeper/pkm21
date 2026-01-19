@@ -250,9 +250,9 @@ const PALETTE = {
 let geometryLayers = [];
 let isGlobalRenderPaused = false;
 
-// --- 远程资源 URL ---
-const MAPDATA_URL = window.MAPDATA_URL || 'https://files.catbox.moe/lyyfet.json';
-const MAPINFO_URL = window.MAPINFO_URL || './mapinfo.json';
+// --- 资源 URL ---（默认使用本地 data 目录，相对路径可被外部覆盖）
+const MAPDATA_URL = window.MAPDATA_URL || './data/mapdata.json';
+const MAPINFO_URL = window.MAPINFO_URL || './data/mapinfo.json';
 
 // --- 系统入口 ---
 async function loadMapData() {

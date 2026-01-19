@@ -2104,45 +2104,39 @@ function injectLocationContext() {
 ${contextText}
 </location_context>`;
     
-    // 调用酒馆的 injectPrompts API（通过父窗口）
+    // 通过 postMessage 发送注入请求给酒馆脚本（跨域兼容）
     try {
         const parentWindow = getParentWindow();
         
-        // 先清除旧注入
-        if (typeof parentWindow.uninjectPrompts === 'function') {
-            parentWindow.uninjectPrompts([LOCATION_INJECT_ID]);
-        }
-        
-        // 注入新内容
-        if (typeof parentWindow.injectPrompts === 'function') {
-            parentWindow.injectPrompts([{
+        // 优先使用 postMessage（GitHub Pages 模式）
+        if (parentWindow !== window) {
+            parentWindow.postMessage({
+                type: 'PKM_INJECT_LOCATION',
                 id: LOCATION_INJECT_ID,
                 position: 'after_wi_scan',
                 depth: 0,
-                role: 'system',
-                should_scan: false,
                 content: promptContent
-            }]);
-            
-            console.log('[PKM] ✓ 位置上下文已注入到世界书 (深度0)');
+            }, '*');
+            console.log('[PKM] ✓ 位置上下文注入请求已发送 (postMessage)');
         } else {
-            // 如果父窗口没有 injectPrompts，尝试通过回调
-            if (window.pkmInjectLocationCallback) {
-                window.pkmInjectLocationCallback({
+            // 本地开发模式：直接调用 API
+            if (typeof injectPrompts === 'function') {
+                if (typeof uninjectPrompts === 'function') {
+                    uninjectPrompts([LOCATION_INJECT_ID]);
+                }
+                injectPrompts([{
                     id: LOCATION_INJECT_ID,
                     position: 'after_wi_scan',
                     depth: 0,
-                    role: 'system',
-                    should_scan: false,
                     content: promptContent
-                });
-                console.log('[PKM] ✓ 位置上下文已通过回调注入');
+                }]);
+                console.log('[PKM] ✓ 位置上下文已注入到世界书 (本地模式)');
             } else {
                 console.warn('[PKM] 无法注入位置上下文：injectPrompts API 不可用');
             }
         }
     } catch (e) {
-        console.error('[PKM] 注入位置上下文失败:', e);
+        console.error('[PKM] 位置上下文注入失败:', e);
     }
 }
 
@@ -2152,9 +2146,20 @@ ${contextText}
 function clearLocationContextInjection() {
     try {
         const parentWindow = getParentWindow();
-        if (typeof parentWindow.uninjectPrompts === 'function') {
-            parentWindow.uninjectPrompts([LOCATION_INJECT_ID]);
-            console.log('[PKM] ✓ 位置上下文注入已清除');
+        
+        // 优先使用 postMessage（GitHub Pages 模式）
+        if (parentWindow !== window) {
+            parentWindow.postMessage({
+                type: 'PKM_CLEAR_INJECTION',
+                id: LOCATION_INJECT_ID
+            }, '*');
+            console.log('[PKM] ✓ 清除注入请求已发送 (postMessage)');
+        } else {
+            // 本地开发模式
+            if (typeof uninjectPrompts === 'function') {
+                uninjectPrompts([LOCATION_INJECT_ID]);
+                console.log('[PKM] ✓ 位置上下文注入已清除 (本地模式)');
+            }
         }
     } catch (e) {
         // 忽略清除失败

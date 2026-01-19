@@ -40,10 +40,10 @@ const script = readFile('script.js');
 const mapScifiCss = readFileOptional('map/scifi.css');
 const mapGameJs = readFileOptional('map/game.js');
 const mapTacticalViewJs = readFileOptional('map/tacticalView.js');
-const mapPkmdataJs = readFileOptional('map/pkmdata.js');
+const mapPkmdataJs = readFileOptional('map/data/pkmdata.js');
 const mapPokemonEngineJs = readFileOptional('map/pokemonEngine.js');
 const mapLocationContextJs = readFileOptional('map/locationContext.js');
-const mapInfoJson = readFileOptional('map/mapinfo.json');
+const mapInfoJson = readFileOptional('map/data/mapinfo.json');
 
 console.log('\n✅ 文件读取完成\n');
 
