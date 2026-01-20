@@ -241,16 +241,19 @@ h1 {
    BOTTOM HUD REMASTER (Precision Style)
    ========================================= */
 #bottom-dock {
-    position: absolute;
-    bottom: 25px;
+    position: fixed;
+    bottom: 20px;
     left: 20px;
-    right: 20px;
-    z-index: 99;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
     pointer-events: none;
+    z-index: 1000;
+}
+
+#bottom-dock > .info-card {
+    margin-bottom: 16px;
 }
 
 .info-card {
@@ -371,24 +374,20 @@ h1 {
 .action-btn {
     pointer-events: auto;
     transform: skewX(var(--s-deg));
-    background: var(--c-dark);
-    height: 54px;
-    padding: 0 28px;
-    border: none;
-    border-radius: 6px;
+    background: rgba(45, 52, 54, 0.85);
+    backdrop-filter: blur(10px);
     color: #fff;
-    font-family: var(--font-ui);
-    font-size: 0.8rem;
-    font-weight: 900;
-    font-style: italic;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    padding: 12px 32px;
+    font-size: 0.9rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
     cursor: pointer;
-    box-shadow: 6px 6px 0 rgba(45, 52, 54, 0.3);
-    border: 2px solid var(--c-dark);
-    transition: all 0.15s ease-out;
-    display: flex;
-    align-items: center;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    text-transform: uppercase;
     white-space: nowrap;
 }
 
@@ -404,10 +403,31 @@ h1 {
 }
 
 .action-btn:hover {
-    background: #000;
-    box-shadow: 8px 8px 0 rgba(0, 206, 201, 0.6);
+    background: rgba(0, 0, 0, 0.95);
+    box-shadow: 8px 8px 0 rgba(0, 206, 201, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     transform: skewX(var(--s-deg)) translate(-2px, -2px);
     border-color: var(--c-cyan);
+}
+
+/* RELOCATE Button - Cyan Glass Effect */
+.relocate-btn {
+    background: rgba(0, 206, 201, 0.25) !important;
+    backdrop-filter: blur(12px);
+    border: 2px solid rgba(0, 206, 201, 0.6) !important;
+    box-shadow: 0 8px 32px rgba(0, 206, 201, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+    margin-bottom: 12px;
+}
+
+.relocate-btn:hover {
+    background: rgba(0, 206, 201, 0.4) !important;
+    box-shadow: 0 12px 40px rgba(0, 206, 201, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+    border-color: rgba(0, 255, 255, 0.8) !important;
+    transform: skewX(var(--s-deg)) translate(-2px, -2px) !important;
+}
+
+.relocate-btn:active {
+    transform: skewX(var(--s-deg)) translate(1px, 1px) !important;
+    box-shadow: 0 4px 16px rgba(0, 206, 201, 0.4) !important;
 }
 
 .action-btn:active {
@@ -633,8 +653,8 @@ body.tactical-mode #action-btn:hover {
 /* Journey Panel - Collapsible Compact Design */
 #journey-panel {
     position: fixed;
-    top: 50%;
-    left: 80px;
+    top: 68%;
+    left: 0px;
     width: 280px;
     z-index: 2000;
     transform: translateY(-50%) skewX(var(--s-deg));

@@ -6,6 +6,7 @@
     <title>RHODIA TACTICAL MAP</title>
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <link rel="stylesheet" href="scifi.css">
+    <link rel="stylesheet" href="notification.css">
 </head>
 <body>
 
@@ -118,6 +119,13 @@
                 </div>
             </div>
         </div>
+
+        <button id="relocate-btn" onclick="window.TacticalSystem && TacticalSystem.toggleMovementMode()" class="action-btn sk-btn relocate-btn" style="display:none;">
+            <span class="action-btn-inner unskew">
+                <i class="ri-map-pin-user-line"></i>
+                <span>RELOCATE</span>
+            </span>
+        </button>
 
         <button id="action-btn" onclick="toggleTacticalMode()" class="action-btn sk-btn">
             <span class="action-btn-inner unskew">

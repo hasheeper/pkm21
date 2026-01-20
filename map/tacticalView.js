@@ -263,14 +263,39 @@ const TacticalSystem = {
             this.checkHover(e.clientX, e.clientY);
         };
 
+        this._click = (e) => {
+            // 移动模式下的点击选择
+            if(this._movementMode && e.button === 0) {
+                const cx = this.w/2 + this.cam.x;
+                const cy = this.h/2 + this.cam.y;
+                const s = TACTICAL_STYLE.TILE_SIZE;
+                const dx = Math.floor((e.clientX - cx + s/2)/s);
+                const dy = Math.floor((e.clientY - cy + s/2)/s);
+                const gx = this.anchor.x + dx;
+                const gy = this.anchor.y + dy;
+                
+                console.log('[Tactical] 点击相对坐标:', dx, dy, '世界坐标:', gx, gy);
+                
+                if(this._isInMoveRange(gx, gy)) {
+                    this._movementTarget = { gx, gy };
+                    console.log('[Tactical] 选择移动目标:', gx, gy);
+                } else {
+                    console.log('[Tactical] 格子不在移动范围内');
+                }
+                e.stopPropagation();
+            }
+        };
+
         window.addEventListener('mousedown', this._down);
         window.addEventListener('mouseup', this._up);
         window.addEventListener('mousemove', this._move);
+        window.addEventListener('click', this._click);
     },
     unbindEvents: function() {
         if(this._down) window.removeEventListener('mousedown', this._down);
         if(this._up) window.removeEventListener('mouseup', this._up);
         if(this._move) window.removeEventListener('mousemove', this._move);
+        if(this._click) window.removeEventListener('click', this._click);
     },
 
     checkHover: function(mx, my) {
@@ -569,6 +594,40 @@ const TacticalSystem = {
             ctx.shadowColor = "#3498db";
             ctx.shadowBlur = 5;
             ctx.strokeRect(x, y, realS, realS);
+            ctx.restore();
+        }
+        
+        // 移动模式：高亮可达格子
+        if (this._movementMode && this._isInMoveRange(gx, gy)) {
+            ctx.save();
+            const isSelected = this._movementTarget && 
+                               this._movementTarget.gx === gx && 
+                               this._movementTarget.gy === gy;
+            
+            if (isSelected) {
+                // 选中的目标格子 - 绿色高亮
+                ctx.fillStyle = "rgba(46, 204, 113, 0.3)";
+                ctx.strokeStyle = "#2ecc71";
+                ctx.lineWidth = 3;
+            } else {
+                // 可达格子 - 蓝色高亮
+                ctx.fillStyle = "rgba(52, 152, 219, 0.2)";
+                ctx.strokeStyle = "#3498db";
+                ctx.lineWidth = 2;
+            }
+            
+            ctx.beginPath();
+            ctx.roundRect(x + 2, y + 2, realS - 4, realS - 4, radius - 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            // 添加移动图标
+            ctx.fillStyle = isSelected ? "#2ecc71" : "#3498db";
+            ctx.font = "bold 16px sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("→", x + realS / 2, y + realS / 2);
+            
             ctx.restore();
         }
 
@@ -1095,8 +1154,299 @@ const TacticalSystem = {
             const gap = 12;
             this._drawPokemonPanel(ctx, PANEL_X, PANEL_Y + TOTAL_H + gap, PANEL_W, d);
         }
-
+        
+        // 移动模式 UI 提示 - 只在选择目标后显示
+        if (this._movementMode && this._movementTarget) {
+            this._drawMovementModeUI(ctx);
+        }
+        
         ctx.restore();
+    },
+    
+    // 绘制移动模式 UI - 右下角弹窗
+    _drawMovementModeUI: function(ctx) {
+        if (!this._movementTarget) return;
+        
+        const targetInfo = this._getGridFullInfo(this._movementTarget.gx, this._movementTarget.gy);
+        
+        // 右下角位置
+        const panelW = 280;
+        const panelH = 120;
+        const padding = 20;
+        const horizontalOffset = -50; // pull closer to right edge
+        const verticalOffset = 50; // leave room above buttons
+        const panelX = ctx.canvas.width - panelW - padding - horizontalOffset;
+        const panelY = ctx.canvas.height - panelH - padding - verticalOffset;
+        
+        ctx.save();
+        
+        // 斜切变换
+        const skewAngle = -0.1;
+        ctx.transform(1, 0, skewAngle, 1, 0, 0);
+        const adjustedX = panelX - panelY * skewAngle;
+        
+        // 背景卡片 - 深色玻璃效果
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.97)';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+        ctx.shadowBlur = 20;
+        
+        ctx.beginPath();
+        if (ctx.roundRect) {
+            ctx.roundRect(adjustedX, panelY, panelW, panelH, 6);
+        } else {
+            ctx.rect(adjustedX, panelY, panelW, panelH);
+        }
+        ctx.fill();
+        ctx.stroke();
+        
+        // 内部高光
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.06)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(adjustedX + 2, panelY + panelH - 2);
+        ctx.lineTo(adjustedX + 2, panelY + 2);
+        ctx.lineTo(adjustedX + panelW - 2, panelY + 2);
+        ctx.stroke();
+        
+        ctx.shadowBlur = 0;
+        
+        // 标题栏
+        const titleBarH = 32;
+        ctx.fillStyle = 'rgba(0, 206, 201, 0.12)';
+        ctx.beginPath();
+        if (ctx.roundRect) {
+            ctx.roundRect(adjustedX, panelY, panelW, titleBarH, [6, 6, 0, 0]);
+        } else {
+            ctx.rect(adjustedX, panelY, panelW, titleBarH);
+        }
+        ctx.fill();
+        
+        // 标题
+        ctx.fillStyle = '#009dbe';
+        ctx.font = "900 11px 'Exo 2', sans-serif";
+        ctx.textAlign = 'left';
+        ctx.fillText('▶ RELOCATION TARGET', adjustedX + 12, panelY + 20);
+        
+        // 目标坐标
+        ctx.fillStyle = '#111';
+        ctx.font = "800 16px 'Chakra Petch', monospace";
+        ctx.textAlign = 'center';
+        ctx.fillText(`[${targetInfo.displayX}, ${targetInfo.displayY}]`, adjustedX + panelW / 2, panelY + 58);
+        
+        // 位置信息
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.font = "600 9px 'Exo 2', sans-serif";
+        const locationText = `${targetInfo.region} · ${targetInfo.biome}`;
+        ctx.fillText(locationText, adjustedX + panelW / 2, panelY + 74);
+        
+        // 按钮区域
+        const btnW = 110;
+        const btnH = 28;
+        const btnY = panelY + panelH - btnH - 10;
+        const btnGap = 10;
+        const totalBtnW = btnW * 2 + btnGap;
+        const btnStartX = adjustedX + (panelW - totalBtnW) / 2;
+        
+        // 确认按钮
+        const confirmGradient = ctx.createLinearGradient(btnStartX, btnY, btnStartX + btnW, btnY + btnH);
+        confirmGradient.addColorStop(0, '#2ecc71');
+        confirmGradient.addColorStop(1, '#27ae60');
+        ctx.fillStyle = confirmGradient;
+        ctx.shadowColor = 'rgba(39, 174, 96, 0.35)';
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(btnStartX, btnY, btnW, btnH, 4);
+        else ctx.rect(btnStartX, btnY, btnW, btnH);
+        ctx.fill();
+        
+        // 按钮高光
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(btnStartX, btnY + btnH);
+        ctx.lineTo(btnStartX, btnY + 2);
+        ctx.lineTo(btnStartX + btnW - 2, btnY);
+        ctx.stroke();
+        
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#fff';
+        ctx.font = "800 10px 'Exo 2', sans-serif";
+        ctx.textAlign = 'center';
+        ctx.fillText('✓ CONFIRM', btnStartX + btnW / 2, btnY + btnH / 2 + 2);
+        
+        // 保存确认按钮的实际坐标（未变换）
+        this._confirmButtonRect = { 
+            x: panelX + (btnStartX - adjustedX), 
+            y: btnY, 
+            w: btnW, 
+            h: btnH 
+        };
+        
+        // 取消按钮
+        const cancelX = btnStartX + btnW + btnGap;
+        const cancelGradient = ctx.createLinearGradient(cancelX, btnY, cancelX + btnW, btnY + btnH);
+        cancelGradient.addColorStop(0, '#ff6b6b');
+        cancelGradient.addColorStop(1, '#e84118');
+        ctx.fillStyle = cancelGradient;
+        ctx.shadowColor = 'rgba(232, 65, 24, 0.35)';
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(cancelX, btnY, btnW, btnH, 4);
+        else ctx.rect(cancelX, btnY, btnW, btnH);
+        ctx.fill();
+        
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cancelX, btnY + btnH);
+        ctx.lineTo(cancelX, btnY + 2);
+        ctx.lineTo(cancelX + btnW - 2, btnY);
+        ctx.stroke();
+        
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#fff';
+        ctx.fillText('✕ CANCEL', cancelX + btnW / 2, btnY + btnH / 2 + 2);
+        
+        // 保存取消按钮的实际坐标（未变换）
+        this._cancelButtonRect = { 
+            x: panelX + (cancelX - adjustedX), 
+            y: btnY, 
+            w: btnW, 
+            h: btnH 
+        };
+        
+        ctx.restore();
+    },
+    
+    // 切换移动模式（从底部按钮调用）
+    toggleMovementMode: function() {
+        this._movementMode = !this._movementMode;
+        this._movementTarget = null;
+        console.log('[Tactical] 移动模式:', this._movementMode ? '开启' : '关闭');
+    },
+    
+    // 绘制移动模式按钮 - Ver. Dawn 风格（已废弃，保留用于兼容）
+    _drawMovementButtons: function(ctx, panelX, panelY, panelW, panelH) {
+        const btnH = 32;
+        const btnGap = 10;
+        const btnY = panelY + panelH + 180;
+        
+        // Ver. Dawn 风格按钮绘制函数
+        const drawSkewedButton = (x, y, w, h, color, text, isActive = true) => {
+            ctx.save();
+            
+            // 斜切变换
+            const skew = 0.15;
+            ctx.transform(1, 0, skew, 1, 0, 0);
+            const adjustedX = x - y * skew;
+            
+            // 背景
+            if (isActive) {
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 12;
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
+            }
+            
+            // 渐变填充
+            const gradient = ctx.createLinearGradient(adjustedX, y, adjustedX + w, y + h);
+            if (isActive) {
+                gradient.addColorStop(0, color);
+                gradient.addColorStop(1, this._adjustColor(color, -20));
+            } else {
+                gradient.addColorStop(0, '#636e72');
+                gradient.addColorStop(1, '#2d3436');
+            }
+            ctx.fillStyle = gradient;
+            
+            // 绘制斜切矩形
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(adjustedX, y, w, h, 4);
+            } else {
+                ctx.rect(adjustedX, y, w, h);
+            }
+            ctx.fill();
+            
+            // 高光边缘
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(adjustedX, y + h);
+            ctx.lineTo(adjustedX, y + 2);
+            ctx.lineTo(adjustedX + w - 2, y);
+            ctx.stroke();
+            
+            ctx.shadowBlur = 0;
+            
+            // 文字
+            ctx.fillStyle = isActive ? '#fff' : '#95a5a6';
+            ctx.font = "800 11px 'Exo 2', sans-serif";
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, adjustedX + w / 2, y + h / 2);
+            
+            ctx.restore();
+        };
+        
+        if (!this._movementMode) {
+            // 显示"移动"按钮
+            const btnW = 120;
+            const btnX = panelX + (panelW - btnW) / 2;
+            
+            drawSkewedButton(btnX, btnY, btnW, btnH, '#00cec9', '▶ RELOCATE');
+            
+            this._moveButtonRect = { x: btnX - 20, y: btnY, w: btnW + 40, h: btnH };
+            this._confirmButtonRect = null;
+            this._cancelButtonRect = null;
+        } else {
+            // 移动模式：显示确认和取消按钮
+            const btnW = 90;
+            const totalW = btnW * 2 + btnGap;
+            const startX = panelX + (panelW - totalW) / 2;
+            
+            const canConfirm = this._movementTarget !== null;
+            
+            // 确认按钮
+            drawSkewedButton(startX, btnY, btnW, btnH, '#2ecc71', '✓ CONFIRM', canConfirm);
+            this._confirmButtonRect = { x: startX - 20, y: btnY, w: btnW + 20, h: btnH };
+            
+            // 取消按钮
+            const cancelX = startX + btnW + btnGap;
+            drawSkewedButton(cancelX, btnY, btnW, btnH, '#e74c3c', '✕ CANCEL', true);
+            this._cancelButtonRect = { x: cancelX - 20, y: btnY, w: btnW + 20, h: btnH };
+            this._moveButtonRect = null;
+            
+            // 显示移动模式提示
+            ctx.save();
+            ctx.fillStyle = 'rgba(0, 206, 201, 0.9)';
+            ctx.font = "700 10px 'Exo 2', sans-serif";
+            ctx.textAlign = 'center';
+            ctx.fillText('SELECT TARGET GRID', panelX + panelW / 2, btnY - 12);
+            
+            if (this._movementTarget) {
+                const targetInfo = this._getGridFullInfo(this._movementTarget.gx, this._movementTarget.gy);
+                ctx.fillStyle = '#2ecc71';
+                ctx.font = "900 12px 'Chakra Petch', monospace";
+                ctx.fillText(`TARGET: [${targetInfo.displayX}, ${targetInfo.displayY}]`, panelX + panelW / 2, btnY - 28);
+            }
+            ctx.restore();
+        }
+    },
+    
+    // 颜色调整辅助函数
+    _adjustColor: function(hex, amount) {
+        let color = hex.replace('#', '');
+        if (color.length === 3) {
+            color = color[0] + color[0] + color[1] + color[1] + color[2] + color[2];
+        }
+        const num = parseInt(color, 16);
+        let r = Math.min(255, Math.max(0, (num >> 16) + amount));
+        let g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amount));
+        let b = Math.min(255, Math.max(0, (num & 0x0000FF) + amount));
+        return '#' + (0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1);
     },
 
     _getSurfaceColor(id, def) {
@@ -1108,6 +1458,203 @@ const TacticalSystem = {
     _infoPanelCollapsed: false, // 信息面板折叠状态
     _pokemonPanelCollapsed: false, // 宝可梦面板折叠状态
     _pokemonImages: null, // 图片缓存（初始化时创建）
+    
+    // ========== 移动模式状态 ==========
+    _movementMode: false, // 是否处于移动模式
+    _movementTarget: null, // 选中的目标格子 { gx, gy }
+    _moveButtonRect: null, // 移动按钮区域
+    _confirmButtonRect: null, // 确认按钮区域
+    _cancelButtonRect: null, // 取消按钮区域
+    
+    // 检查格子是否在移动范围内（曼哈顿距离 <= 2）
+    _isInMoveRange: function(gx, gy) {
+        const dx = Math.abs(gx - this.playerGrid.x);
+        const dy = Math.abs(gy - this.playerGrid.y);
+        return (dx + dy) <= 2 && (dx + dy) > 0; // 距离1-2，排除当前位置
+    },
+    
+    // 获取当前格子的完整信息（用于比较变更）
+    _getGridFullInfo: function(gx, gy) {
+        const tags = getZoneInfo(gx, gy);
+        const surfaceVal = getIntVal(gx, gy, "Surface") || 0;
+        const regionIntVal = getIntVal(gx, gy, "Regions") || 0;
+        
+        const regionEntity = formatZoneName(tags.region);
+        const regionIntName = formatZoneName(getIntGridTextName("Regions", regionIntVal));
+        const regionDisplay = regionEntity || regionIntName || (regionIntVal ? `SEC-${regionIntVal}` : "UNDEFINED");
+        const biomeDisplay = formatZoneName(tags.biome) || "---";
+        const surfaceName = (window.TERRAIN_CONFIG && window.TERRAIN_CONFIG[surfaceVal]?.type) || "VOID";
+        
+        // 计算显示坐标
+        const MAP_CENTER_X = 26, MAP_CENTER_Y = 26;
+        let coordsX = gx - MAP_CENTER_X; if (coordsX >= 0) coordsX += 1;
+        let coordsY = MAP_CENTER_Y - gy - 1; if (coordsY >= 0) coordsY += 1;
+        
+        return {
+            gx, gy,
+            displayX: coordsX,
+            displayY: coordsY,
+            region: regionDisplay,
+            biome: biomeDisplay,
+            surface: surfaceName,
+            regionZone: formatZoneName(getEntZoneName('Region_Zone', gx, gy)) || "LOCAL GRID"
+        };
+    },
+    
+    // 生成移动变更文本
+    _generateMoveChangeText: function(fromInfo, toInfo) {
+        const lines = [];
+        
+        // VariableEdit 部分 - 使用正确的 ERA 格式
+        lines.push('<VariableEdit>');
+        lines.push(`"world_state": {`);
+        lines.push(`    "location": {`);
+        lines.push(`        "x": ${toInfo.displayX},`);
+        lines.push(`        "y": ${toInfo.displayY}`);
+        lines.push(`    }`);
+        lines.push(`}`);
+        lines.push('</VariableEdit>');
+        lines.push('');
+        
+        // 位置变更信息 - AI 提示词部分
+        lines.push(`【位置移动】玩家从 [${fromInfo.displayX}, ${fromInfo.displayY}] 移动到了 [${toInfo.displayX}, ${toInfo.displayY}]。`);
+        
+        // 检查是否有变更
+        const changes = [];
+        
+        if (fromInfo.region !== toInfo.region) {
+            const fromRegionInfo = this._getRegionNarrativeInfo(fromInfo.region);
+            const toRegionInfo = this._getRegionNarrativeInfo(toInfo.region);
+            changes.push(`★ 地区变更: 离开「${fromRegionInfo.name}」，进入「${toRegionInfo.name}」`);
+            if (toRegionInfo.prompt) {
+                changes.push(`  → ${toRegionInfo.prompt}`);
+            }
+        }
+        if (fromInfo.biome !== toInfo.biome) {
+            const fromBiomeInfo = this._getBiomeNarrativeInfo(fromInfo.biome);
+            const toBiomeInfo = this._getBiomeNarrativeInfo(toInfo.biome);
+            changes.push(`★ 生态区变更: 从「${fromBiomeInfo.name}」进入「${toBiomeInfo.name}」`);
+            if (toBiomeInfo.visual) {
+                changes.push(`  → ${toBiomeInfo.visual}`);
+            }
+            if (toBiomeInfo.sensory) {
+                changes.push(`  → ${toBiomeInfo.sensory}`);
+            }
+        }
+        if (fromInfo.regionZone !== toInfo.regionZone) {
+            const fromZoneInfo = this._getZoneNarrativeInfo(fromInfo.regionZone);
+            const toZoneInfo = this._getZoneNarrativeInfo(toInfo.regionZone);
+            changes.push(`★ 人文区变更: 离开「${fromZoneInfo.name}」，进入「${toZoneInfo.name}」`);
+            if (toZoneInfo.exterior) {
+                changes.push(`  → ${toZoneInfo.exterior}`);
+            }
+        }
+        if (fromInfo.surface !== toInfo.surface) {
+            changes.push(`★ 地表变更: 从「${fromInfo.surface}」变为「${toInfo.surface}」`);
+        }
+        
+        if (changes.length > 0) {
+            lines.push('');
+            lines.push('【环境变化】');
+            changes.forEach(c => lines.push(c));
+        } else {
+            lines.push('环境无显著变化，仍在同一区域内移动。');
+        }
+        
+        return lines.join('\n');
+    },
+    
+    // 获取地区叙事信息
+    _getRegionNarrativeInfo: function(regionKey) {
+        const mapInfo = window.mapInfoData;
+        if (!mapInfo) return { name: regionKey, prompt: null };
+        
+        const regions = mapInfo.narrative_layer?.world_atmosphere?.regions || {};
+        for (const key in regions) {
+            const r = regions[key];
+            if (key.toLowerCase().includes(regionKey.toLowerCase()) || 
+                (r.display_name && r.display_name.includes(regionKey))) {
+                return {
+                    name: r.display_name || regionKey,
+                    prompt: r.prompt_snippet || null
+                };
+            }
+        }
+        return { name: regionKey, prompt: null };
+    },
+    
+    // 获取生态区叙事信息
+    _getBiomeNarrativeInfo: function(biomeKey) {
+        const mapInfo = window.mapInfoData;
+        if (!mapInfo) return { name: biomeKey, visual: null, sensory: null };
+        
+        const biomes = mapInfo.biome_flavor || {};
+        const normalizedKey = biomeKey.replace(/\s+/g, '_');
+        
+        for (const key in biomes) {
+            if (key.toLowerCase() === normalizedKey.toLowerCase() ||
+                key.toLowerCase().includes(normalizedKey.toLowerCase())) {
+                const b = biomes[key];
+                return {
+                    name: key.replace(/_/g, ' '),
+                    visual: b.visual_texture || null,
+                    sensory: b.sensory_feed || null
+                };
+            }
+        }
+        return { name: biomeKey, visual: null, sensory: null };
+    },
+    
+    // 获取人文区叙事信息
+    _getZoneNarrativeInfo: function(zoneKey) {
+        const mapInfo = window.mapInfoData;
+        if (!mapInfo) return { name: zoneKey, exterior: null };
+        
+        const zones = mapInfo.region_zones || {};
+        const normalizedKey = zoneKey.replace(/\s+/g, '_');
+        
+        for (const key in zones) {
+            if (key.toLowerCase() === normalizedKey.toLowerCase() ||
+                key.toLowerCase().includes(normalizedKey.toLowerCase())) {
+                const z = zones[key];
+                return {
+                    name: key.replace(/_/g, ' '),
+                    exterior: z.exterior_view || null
+                };
+            }
+        }
+        return { name: zoneKey, exterior: null };
+    },
+    
+    // 复制到剪贴板
+    _copyToClipboard: function(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                console.log('[Tactical] 已复制到剪贴板');
+            }).catch(err => {
+                console.error('[Tactical] 复制失败:', err);
+                this._fallbackCopy(text);
+            });
+        } else {
+            this._fallbackCopy(text);
+        }
+    },
+    
+    _fallbackCopy: function(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            console.log('[Tactical] 已复制到剪贴板 (fallback)');
+        } catch (err) {
+            console.error('[Tactical] 复制失败:', err);
+        }
+        document.body.removeChild(textarea);
+    },
     
     _getPokemonImageCache: function() {
         if (!this._pokemonImages) {
@@ -1388,6 +1935,26 @@ const TacticalSystem = {
     
     // 处理面板点击（折叠/展开）
     handlePanelClick: function(mx, my) {
+        // 检查确认按钮
+        if (this._confirmButtonRect && this._movementTarget) {
+            const r = this._confirmButtonRect;
+            if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) {
+                this._confirmMovement();
+                return true;
+            }
+        }
+        
+        // 检查取消按钮
+        if (this._cancelButtonRect && this._movementMode) {
+            const r = this._cancelButtonRect;
+            if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) {
+                this._movementMode = false;
+                this._movementTarget = null;
+                console.log('[Tactical] 取消移动模式');
+                return true;
+            }
+        }
+        
         // 检查信息面板标题栏
         if (this._infoPanelHeaderRect) {
             const r = this._infoPanelHeaderRect;
@@ -1407,6 +1974,75 @@ const TacticalSystem = {
         }
         
         return false;
+    },
+    
+    // 确认移动
+    _confirmMovement: function() {
+        if (!this._movementTarget) return;
+        
+        const fromInfo = this._getGridFullInfo(this.playerGrid.x, this.playerGrid.y);
+        const toInfo = this._getGridFullInfo(this._movementTarget.gx, this._movementTarget.gy);
+        
+        const clipboardText = this._generateMoveChangeText(fromInfo, toInfo);
+        this._copyToClipboard(clipboardText);
+        
+        // 显示弹窗通知
+        this._showMoveNotification(fromInfo, toInfo);
+        
+        // 退出移动模式
+        this._movementMode = false;
+        this._movementTarget = null;
+        
+        console.log('[Tactical] 移动确认，已复制到剪贴板');
+    },
+    
+    // 显示移动通知弹窗 - 使用 app.js 样式
+    _showMoveNotification: function(fromInfo, toInfo) {
+        // 移除旧通知
+        const old = document.querySelector('.copy-notification');
+        if (old) old.remove();
+        
+        // 检查环境变化
+        const changes = [];
+        if (fromInfo.region !== toInfo.region) changes.push(`地区: ${toInfo.region}`);
+        if (fromInfo.biome !== toInfo.biome) changes.push(`生态: ${toInfo.biome}`);
+        if (fromInfo.regionZone !== toInfo.regionZone) changes.push(`区域: ${toInfo.regionZone}`);
+        if (fromInfo.surface !== toInfo.surface) changes.push(`地表: ${toInfo.surface}`);
+        
+        const hasChanges = changes.length > 0;
+        const changeDesc = hasChanges ? changes.join(' · ') : '同区域内移动';
+        
+        // 创建通知元素 - 使用 app.js 的结构
+        const notification = document.createElement('div');
+        notification.className = 'copy-notification';
+        notification.innerHTML = `
+            <div class="copy-notif-internal">
+                <div class="copy-notif-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="24" height="24">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <div class="copy-notif-text">
+                    <div class="copy-notif-title">RELOCATION CONFIRMED</div>
+                    <div class="copy-notif-desc">[${fromInfo.displayX}, ${fromInfo.displayY}] → [${toInfo.displayX}, ${toInfo.displayY}]</div>
+                    ${hasChanges ? `<div class="copy-notif-desc" style="margin-top: 4px; opacity: 0.8;">${changeDesc}</div>` : ''}
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // 强制 reflow
+        void notification.offsetWidth;
+        
+        // 滑入
+        requestAnimationFrame(() => notification.classList.add('show'));
+        
+        // 3.5秒后滑出销毁
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 500);
+        }, 3500);
     },
     
     // 兼容旧方法名

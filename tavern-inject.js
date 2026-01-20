@@ -510,34 +510,56 @@
                     }
                 }
                 
-                // Region_Zone 信息（优先使用实体数据，否则用最近的）
-                if (entities.regionZone) {
+                // ========== 区域描述优先级：水系 > 人文区 > 非水系生态区 ==========
+                const waterBiomes = [
+                    'Zero_Halo_Moat', 'Mirror_Lotis_Lake', 'Emerald_Vein_River', 'Crystal_Lagoon',
+                    'Twin_Destiny_Basin', 'Chrome_Canal', 'Ferro_Straits', 'Mercury_Stream',
+                    'Frigid_Floe', 'Mist_Veil_Sound', 'Prism_Bay', 'Cerulean_Reef',
+                    'Basalt_Shoals', 'Equatorial_Dark_Zone', 'Titan_Trough', 'Chrome_Abyss', 'Boreal_Trench'
+                ];
+                
+                const hasRegionZone = entities.regionZone;
+                const hasBiomeZone = entities.biomeZone;
+                const isWaterBiome = hasBiomeZone && waterBiomes.includes(entities.biomeZone);
+                
+                // 1. 优先显示水系生态区
+                if (isWaterBiome) {
+                    lines.push(`所属水域: ${entities.biomeZone}`);
+                    const biomeDesc = this.biomeFlavor[entities.biomeZone];
+                    if (biomeDesc) {
+                        if (biomeDesc.visual_texture) lines.push(`【视觉纹理】${biomeDesc.visual_texture}`);
+                        if (biomeDesc.sensory_feed) lines.push(`【感官体验】${biomeDesc.sensory_feed}`);
+                    }
+                }
+                // 2. 其次显示人文区（如果不是水系）
+                else if (hasRegionZone) {
                     lines.push(`所属设施区: ${entities.regionZone}`);
                     const rzDesc = this.regionZones[entities.regionZone];
                     if (rzDesc) {
                         if (rzDesc.exterior_view) lines.push(`【外观描述】${rzDesc.exterior_view}`);
                         if (rzDesc.internal_reality) lines.push(`【内部环境】${rzDesc.internal_reality}`);
                     }
-                } else {
-                    const nearestRZ = this.findNearestRegionZone(x, y);
-                    if (nearestRZ) {
-                        lines.push(`附近设施区: ${nearestRZ.name} (~${nearestRZ.distance}格)`);
-                        if (nearestRZ.data.exterior_view) lines.push(`【外观描述】${nearestRZ.data.exterior_view}`);
-                        if (nearestRZ.data.internal_reality) lines.push(`【内部环境】${nearestRZ.data.internal_reality}`);
-                    }
                 }
-                
-                // Biome_Zone 信息
-                if (entities.biomeZone) {
+                // 3. 最后显示非水系生态区
+                else if (hasBiomeZone) {
                     lines.push(`所属生态区: ${entities.biomeZone}`);
                     const biomeDesc = this.biomeFlavor[entities.biomeZone];
                     if (biomeDesc) {
                         if (biomeDesc.visual_texture) lines.push(`【视觉纹理】${biomeDesc.visual_texture}`);
                         if (biomeDesc.sensory_feed) lines.push(`【感官体验】${biomeDesc.sensory_feed}`);
                     }
-                } else {
+                }
+                // 4. 如果都没有，查找最近的区域
+                else {
+                    const nearestRZ = this.findNearestRegionZone(x, y);
                     const nearestBZ = this.findNearestBiomeZone(x, y);
-                    if (nearestBZ) {
+                    
+                    // 优先显示距离更近的
+                    if (nearestRZ && (!nearestBZ || nearestRZ.distance <= nearestBZ.distance)) {
+                        lines.push(`附近设施区: ${nearestRZ.name} (~${nearestRZ.distance}格)`);
+                        if (nearestRZ.data.exterior_view) lines.push(`【外观描述】${nearestRZ.data.exterior_view}`);
+                        if (nearestRZ.data.internal_reality) lines.push(`【内部环境】${nearestRZ.data.internal_reality}`);
+                    } else if (nearestBZ) {
                         lines.push(`附近生态区: ${nearestBZ.name} (~${nearestBZ.distance}格)`);
                         if (nearestBZ.data.visual_texture) lines.push(`【视觉纹理】${nearestBZ.data.visual_texture}`);
                         if (nearestBZ.data.sensory_feed) lines.push(`【感官体验】${nearestBZ.data.sensory_feed}`);

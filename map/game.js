@@ -322,9 +322,14 @@ async function loadMapData() {
                 }
             }
             
-            if (mapInfoData && window.LocationContextGenerator) {
-                window.LocationContextGenerator.init(mapInfoData);
-                console.log('[LocationContext] Initialized with mapinfo data');
+            if (mapInfoData) {
+                // 保存到全局以供其他模块使用
+                window.mapInfoData = mapInfoData;
+                
+                if (window.LocationContextGenerator) {
+                    window.LocationContextGenerator.init(mapInfoData);
+                    console.log('[LocationContext] Initialized with mapinfo data');
+                }
             }
         } catch(e) {
             console.warn('[LocationContext] Failed to load mapinfo.json:', e);
@@ -1030,16 +1035,6 @@ function bindEvents() {
     canvas.addEventListener('contextmenu', e => e.preventDefault());
 
     canvas.addEventListener('mousedown', e => { 
-        if(e.shiftKey && e.button === 0 && window.RouteSystem) {
-            const rect = canvas.getBoundingClientRect();
-            const wx = (e.clientX - rect.left - camera.x) / camera.zoom;
-            const wy = (e.clientY - rect.top - camera.y) / camera.zoom;
-            const gx = Math.floor(wx / GRID_SIZE);
-            const gy = Math.floor(wy / GRID_SIZE);
-            RouteSystem.handleShiftClick(gx, gy);
-            return;
-        }
-
         if(e.button === 0) {
             isDragging = true; 
             lastMouse = {x:e.clientX, y:e.clientY}; 
@@ -1076,13 +1071,26 @@ function bindEvents() {
 
     // Move
     canvas.addEventListener('mousemove', e => {
-        if(isDragging) {
+        // 移动模式下禁用拖拽
+        if(isDragging && !(window.TacticalSystem && window.TacticalSystem._movementMode)) {
             camera.x += e.clientX - lastMouse.x;
             camera.y += e.clientY - lastMouse.y;
             limitCameraBounds();
         }
         lastMouse = {x:e.clientX, y:e.clientY};
         if(!isDragging) checkMouseHover(e.clientX, e.clientY);
+    });
+    
+    // Shift + 点击添加路线点
+    canvas.addEventListener('click', e => {
+        if(e.shiftKey && window.RouteSystem) {
+            const rect = canvas.getBoundingClientRect();
+            const wx = (e.clientX - rect.left - camera.x) / camera.zoom;
+            const wy = (e.clientY - rect.top - camera.y) / camera.zoom;
+            const gx = Math.floor(wx / GRID_SIZE);
+            const gy = Math.floor(wy / GRID_SIZE);
+            RouteSystem.handleShiftClick(gx, gy);
+        }
     });
 }
 
@@ -1311,15 +1319,23 @@ function updatePlayerCoordsUI() {
 
 function toggleTacticalMode() {
     const btnText = document.getElementById('action-btn-text');
+    const relocateBtn = document.getElementById('relocate-btn');
     const isDiving = !document.body.classList.contains('tactical-mode');
 
     if(isDiving) {
         document.body.classList.add('tactical-mode');
         if(btnText) btnText.innerText = "RETURN TO ORBIT";
+        if(relocateBtn) relocateBtn.style.display = 'block';
         enterPlayerTactical();
     } else {
         document.body.classList.remove('tactical-mode');
         if(btnText) btnText.innerText = "TACTICAL DIVE";
+        if(relocateBtn) relocateBtn.style.display = 'none';
+        // 退出战术模式时关闭移动模式
+        if(window.TacticalSystem && window.TacticalSystem._movementMode) {
+            window.TacticalSystem._movementMode = false;
+            window.TacticalSystem._movementTarget = null;
+        }
         exitPlayerTactical();
     }
 }
@@ -1402,6 +1418,10 @@ const RouteSystem = {
             this.dom.panel.classList.remove('hidden');
             if(this.markers.length === 0) this.reset();
         } else {
+            // 关闭面板时，如果有多个点，生成旅途叙事
+            if(this.markers.length > 1) {
+                this.confirmJourney();
+            }
             this.dom.panel.classList.add('hidden');
             this.isExpanded = false;
             this.dom.panel.classList.remove('expanded');
@@ -1575,6 +1595,327 @@ const RouteSystem = {
         });
 
         ctxRef.restore();
+    },
+    
+    // 生成旅途叙事并确认
+    confirmJourney() {
+        if(this.markers.length < 2) return;
+        
+        const journeyText = this.generateJourneyNarrative();
+        this.copyToClipboard(journeyText);
+        this.showJourneyNotification();
+        
+        console.log('[RouteSystem] 旅途叙事已生成:');
+        console.log(journeyText);
+    },
+    
+    // 生成旅途叙事
+    generateJourneyNarrative() {
+        const lines = [];
+        const destination = this.markers[this.markers.length - 1];
+        const destDisplay = toDisplayCoords(destination.gx, destination.gy);
+        
+        // VariableEdit 部分 - 终点坐标
+        lines.push('<VariableEdit>');
+        lines.push(`"world_state": {`);
+        lines.push(`    "location": {`);
+        lines.push(`        "x": ${destDisplay.x},`);
+        lines.push(`        "y": ${destDisplay.y}`);
+        lines.push(`    }`);
+        lines.push(`}`);
+        lines.push('</VariableEdit>');
+        lines.push('');
+        
+        // 旅途标题
+        const legCount = this.markers.length - 1;
+        lines.push(`【旅途记录】共 ${legCount} 段行程，从 ${this.getLocationName(0)} 前往 ${this.getLocationName(this.markers.length - 1)}。`);
+        lines.push('');
+        
+        // 逐段描述环境变化
+        for(let i = 1; i < this.markers.length; i++) {
+            const fromPt = this.markers[i - 1];
+            const toPt = this.markers[i];
+            
+            const fromInfo = this.getGridInfo(fromPt.gx, fromPt.gy);
+            const toInfo = this.getGridInfo(toPt.gx, toPt.gy);
+            
+            lines.push(`▶ 第 ${i} 段: ${fromInfo.displayName} → ${toInfo.displayName}`);
+            
+            // 检查环境变化
+            const changes = [];
+            
+            // 1. 地区变化（大区域）
+            if(fromInfo.region !== toInfo.region) {
+                const fromRegion = this.getRegionNarrative(fromInfo.region);
+                const toRegion = this.getRegionNarrative(toInfo.region);
+                changes.push(`  ★ 跨越地区: 离开「${fromRegion.name}」，进入「${toRegion.name}」`);
+                if(toRegion.prompt) {
+                    changes.push(`    ${toRegion.prompt}`);
+                }
+            }
+            
+            // 2. 区域变化（人文区）vs 生态变化 - 优先显示人文区
+            const zoneChanged = fromInfo.zone !== toInfo.zone;
+            const biomeChanged = fromInfo.biome !== toInfo.biome;
+            
+            if(zoneChanged) {
+                const fromZone = this.getZoneNarrative(fromInfo.zone);
+                const toZone = this.getZoneNarrative(toInfo.zone);
+                
+                // 检查是否是人文区（在 region_zones 中）
+                const isHumanZone = this.isInRegionZones(toInfo.zone);
+                
+                if(isHumanZone) {
+                    // 人文区优先显示
+                    changes.push(`  ★ 区域变化: 离开「${fromZone.name}」，进入「${toZone.name}」`);
+                    if(toZone.exterior) {
+                        changes.push(`    ${toZone.exterior}`);
+                    }
+                } else if(biomeChanged) {
+                    // 如果不是人文区且生态也变了，显示生态变化
+                    const fromBiome = this.getBiomeNarrative(fromInfo.biome);
+                    const toBiome = this.getBiomeNarrative(toInfo.biome);
+                    changes.push(`  ★ 生态变化: 从「${fromBiome.name}」进入「${toBiome.name}」`);
+                    if(toBiome.visual) {
+                        changes.push(`    ${toBiome.visual}`);
+                    }
+                } else {
+                    // 只有区域变化，没有生态变化
+                    changes.push(`  ★ 区域变化: 离开「${fromZone.name}」，进入「${toZone.name}」`);
+                    if(toZone.exterior) {
+                        changes.push(`    ${toZone.exterior}`);
+                    }
+                }
+            } else if(biomeChanged) {
+                // 只有生态变化，没有区域变化
+                const fromBiome = this.getBiomeNarrative(fromInfo.biome);
+                const toBiome = this.getBiomeNarrative(toInfo.biome);
+                changes.push(`  ★ 生态变化: 从「${fromBiome.name}」进入「${toBiome.name}」`);
+                if(toBiome.visual) {
+                    changes.push(`    ${toBiome.visual}`);
+                }
+            }
+            
+            // 3. 地表变化
+            if(fromInfo.surface !== toInfo.surface) {
+                changes.push(`  ★ 地表变化: ${fromInfo.surface} → ${toInfo.surface}`);
+            }
+            
+            if(changes.length > 0) {
+                lines.push(...changes);
+            } else {
+                lines.push(`  继续在同一环境中前进。`);
+            }
+            lines.push('');
+        }
+        
+        // 最终抵达
+        const finalInfo = this.getGridInfo(destination.gx, destination.gy);
+        lines.push(`【最终目的地】`);
+        lines.push(`坐标: [${destDisplay.x}, ${destDisplay.y}]`);
+        if(finalInfo.region) lines.push(`地区: ${finalInfo.region}`);
+        if(finalInfo.biome) lines.push(`生态: ${finalInfo.biome}`);
+        lines.push(`区域: ${finalInfo.zone}`);
+        if(finalInfo.surface) lines.push(`地表: ${finalInfo.surface}`);
+        
+        return lines.join('\n');
+    },
+    
+    // 获取位置名称
+    getLocationName(index) {
+        if(index < 0 || index >= this.markers.length) return 'Unknown';
+        const pt = this.markers[index];
+        const display = toDisplayCoords(pt.gx, pt.gy);
+        const zone = formatZoneLabel(
+            getEntZoneName('Region_Zone', pt.gx, pt.gy)
+            || getEntZoneName('Biome_Zone', pt.gx, pt.gy)
+        ) || `[${display.x}, ${display.y}]`;
+        return zone;
+    },
+    
+    // 获取格子信息
+    getGridInfo(gx, gy) {
+        const display = toDisplayCoords(gx, gy);
+        const regionVal = getIntVal(gx, gy, 'Region');
+        const biomeVal = getIntVal(gx, gy, 'Biome');
+        const surfaceVal = getIntVal(gx, gy, 'Surface');
+        const zoneVal = getEntZoneName('Region_Zone', gx, gy) || getEntZoneName('Biome_Zone', gx, gy);
+        
+        const regionName = getIntGridTextName('Region', regionVal) || '';
+        const biomeName = getIntGridTextName('Biome', biomeVal) || '';
+        const surfaceName = getIntGridTextName('Surface', surfaceVal) || '';
+        const zoneName = formatZoneLabel(zoneVal) || 'Local Grid';
+        
+        return {
+            displayX: display.x,
+            displayY: display.y,
+            displayName: zoneName,
+            region: regionName,
+            biome: biomeName,
+            surface: surfaceName,
+            zone: zoneName
+        };
+    },
+    
+    // 获取地区叙事信息
+    getRegionNarrative(regionKey) {
+        const mapInfo = window.mapInfoData;
+        if(!mapInfo) return { name: regionKey, prompt: null };
+        
+        const regions = mapInfo.narrative_layer?.world_atmosphere?.regions || {};
+        for(const key in regions) {
+            const r = regions[key];
+            if(key.toLowerCase().includes(regionKey.toLowerCase()) || 
+                (r.display_name && r.display_name.includes(regionKey))) {
+                return {
+                    name: r.display_name || regionKey,
+                    prompt: r.prompt_snippet || null
+                };
+            }
+        }
+        return { name: regionKey, prompt: null };
+    },
+    
+    // 获取生态区叙事信息
+    getBiomeNarrative(biomeKey) {
+        const mapInfo = window.mapInfoData;
+        if(!mapInfo) return { name: biomeKey, visual: null };
+        
+        const biomes = mapInfo.biome_flavor || {};
+        const normalizedKey = biomeKey.replace(/\s+/g, '_');
+        
+        for(const key in biomes) {
+            if(key.toLowerCase() === normalizedKey.toLowerCase() ||
+                key.toLowerCase().includes(normalizedKey.toLowerCase())) {
+                const b = biomes[key];
+                return {
+                    name: key.replace(/_/g, ' '),
+                    visual: b.visual_texture || null
+                };
+            }
+        }
+        return { name: biomeKey, visual: null };
+    },
+    
+    // 检查区域是否在 region_zones 中（人文区）
+    isInRegionZones(zoneKey) {
+        const mapInfo = window.mapInfoData;
+        if(!mapInfo) return false;
+        
+        const zones = mapInfo.region_zones || {};
+        const normalizedKey = zoneKey.replace(/\s+/g, '_');
+        
+        for(const key in zones) {
+            if(key.toLowerCase() === normalizedKey.toLowerCase() ||
+                key.toLowerCase().includes(normalizedKey.toLowerCase())) {
+                return true;
+            }
+        }
+        return false;
+    },
+    
+    // 获取人文区叙事信息
+    getZoneNarrative(zoneKey) {
+        const mapInfo = window.mapInfoData;
+        if(!mapInfo) return { name: zoneKey, exterior: null };
+        
+        const normalizedKey = zoneKey.replace(/\s+/g, '_');
+        
+        // 先在 region_zones 中查找
+        const zones = mapInfo.region_zones || {};
+        for(const key in zones) {
+            if(key.toLowerCase() === normalizedKey.toLowerCase() ||
+                key.toLowerCase().includes(normalizedKey.toLowerCase())) {
+                const z = zones[key];
+                return {
+                    name: key.replace(/_/g, ' '),
+                    exterior: z.exterior_view || null
+                };
+            }
+        }
+        
+        // 如果没找到，在 biome_flavor 中查找
+        const biomes = mapInfo.biome_flavor || {};
+        for(const key in biomes) {
+            if(key.toLowerCase() === normalizedKey.toLowerCase() ||
+                key.toLowerCase().includes(normalizedKey.toLowerCase())) {
+                const b = biomes[key];
+                return {
+                    name: key.replace(/_/g, ' '),
+                    exterior: b.visual_texture || null
+                };
+            }
+        }
+        
+        return { name: zoneKey, exterior: null };
+    },
+    
+    // 复制到剪贴板
+    copyToClipboard(text) {
+        if(navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                console.log('[RouteSystem] 已复制到剪贴板');
+            }).catch(err => {
+                console.error('[RouteSystem] 复制失败:', err);
+                this.fallbackCopy(text);
+            });
+        } else {
+            this.fallbackCopy(text);
+        }
+    },
+    
+    // 备用复制方法
+    fallbackCopy(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            console.log('[RouteSystem] 备用复制成功');
+        } catch(err) {
+            console.error('[RouteSystem] 备用复制失败:', err);
+        }
+        document.body.removeChild(textarea);
+    },
+    
+    // 显示旅途通知
+    showJourneyNotification() {
+        const old = document.querySelector('.copy-notification');
+        if(old) old.remove();
+        
+        const legCount = this.markers.length - 1;
+        const destination = this.markers[this.markers.length - 1];
+        const destDisplay = toDisplayCoords(destination.gx, destination.gy);
+        const destName = this.getLocationName(this.markers.length - 1);
+        
+        const notification = document.createElement('div');
+        notification.className = 'copy-notification';
+        notification.innerHTML = `
+            <div class="copy-notif-internal">
+                <div class="copy-notif-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="24" height="24">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <div class="copy-notif-text">
+                    <div class="copy-notif-title">JOURNEY CONFIRMED</div>
+                    <div class="copy-notif-desc">${legCount} 段行程 · 目的地: ${destName}</div>
+                    <div class="copy-notif-desc" style="margin-top: 4px; opacity: 0.8;">[${destDisplay.x}, ${destDisplay.y}]</div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        void notification.offsetWidth;
+        requestAnimationFrame(() => notification.classList.add('show'));
+        
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 500);
+        }, 3500);
     }
 };
 
