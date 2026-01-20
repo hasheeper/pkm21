@@ -170,7 +170,7 @@ async function loadTransitData() {
     }
 }
 
-// 从 mapdata.json 提取交通实体
+// 从 mapdata.json 提取交通实体和 PC_Terminal
 function extractTransitEntities() {
     if (!transitData.mapData?.levels?.[0]) return;
     
@@ -180,6 +180,7 @@ function extractTransitEntities() {
     transitData.stations = [];
     transitData.seaPorts = [];
     transitData.airfields = [];
+    transitData.pcTerminals = []; // PC_Terminal 信号塔位置
     
     for (const layer of levelData.layerInstances || []) {
         if (layer.__type !== 'Entities') continue;
@@ -210,6 +211,14 @@ function extractTransitEntities() {
                 transitData.seaPorts.push(item);
             } else if (entity.__identifier === 'Sky_Net' && fieldValue) {
                 transitData.airfields.push(item);
+            } else if (entity.__identifier === 'PC_Terminal') {
+                // PC_Terminal 不需要 fieldValue，只需要位置
+                transitData.pcTerminals.push({
+                    gx, gy,
+                    x: displayCoords.x,
+                    y: displayCoords.y,
+                    region: getRegionByCoords(displayCoords.x, displayCoords.y)
+                });
             }
         }
     }
@@ -217,8 +226,57 @@ function extractTransitEntities() {
     console.log('[TRANSIT] 提取完成:', {
         stations: transitData.stations.length,
         seaPorts: transitData.seaPorts.length,
-        airfields: transitData.airfields.length
+        airfields: transitData.airfields.length,
+        pcTerminals: transitData.pcTerminals.length
     });
+}
+
+// PC_Terminal 信号覆盖半径（格子数）
+const PC_SIGNAL_RADIUS = 3;
+
+// 检查玩家是否在信号覆盖范围内
+// 规则：Z区全覆盖 OR 在任意 PC_Terminal 的 3 格范围内
+function isInSignalCoverage(playerX, playerY) {
+    // Z区（中枢区）默认全覆盖
+    const playerRegion = getRegionByCoords(playerX, playerY);
+    if (playerRegion === 'Z') {
+        return { covered: true, reason: 'ZENITH_FULL_COVERAGE' };
+    }
+    
+    // 检查是否在任意 PC_Terminal 的信号范围内
+    if (transitData.pcTerminals && transitData.pcTerminals.length > 0) {
+        for (const terminal of transitData.pcTerminals) {
+            const dist = calcDistance(playerX, playerY, terminal.x, terminal.y);
+            if (dist <= PC_SIGNAL_RADIUS) {
+                return { 
+                    covered: true, 
+                    reason: 'PC_TERMINAL_RANGE',
+                    terminal: terminal,
+                    distance: dist
+                };
+            }
+        }
+    }
+    
+    // 找到最近的 PC_Terminal
+    let nearestDist = Infinity;
+    let nearestTerminal = null;
+    if (transitData.pcTerminals) {
+        for (const terminal of transitData.pcTerminals) {
+            const dist = calcDistance(playerX, playerY, terminal.x, terminal.y);
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                nearestTerminal = terminal;
+            }
+        }
+    }
+    
+    return { 
+        covered: false, 
+        reason: 'OUT_OF_RANGE',
+        nearestTerminal: nearestTerminal,
+        nearestDistance: nearestDist
+    };
 }
 
 // 获取交通设施描述
@@ -1342,11 +1400,9 @@ let boxState = {
     selectedPartIdxs: [],    // 当前选中的队伍槽位数组 (0-5)
     selectedBoxKeys: [],     // 当前选中的盒子Key数组 (字符串，有宝可梦的格子)
     selectedEmptyIdxs: [],   // 当前选中的空白格子索引数组 (用于存入)
-    isLocked: false          // 区域锁定状态
+    isLocked: false,         // 信号锁定状态
+    signalStatus: null       // 信号覆盖状态详情
 };
-
-// 允许连接网络的区域代码
-const ALLOWED_ZONES = ['N', 'B', 'Z']; 
 
 function buildGenderMark(gender) {
     const genderKey = (gender || '').toUpperCase();
@@ -1356,7 +1412,7 @@ function buildGenderMark(gender) {
 }
 
 /* --- 1. [核心] 渲染 BOX 页面 --- */
-function renderBoxPage() {
+async function renderBoxPage() {
     console.log('[BOX] renderBoxPage 被调用');
     const boxPage = document.getElementById('pg-box');
     if (!boxPage) {
@@ -1364,17 +1420,25 @@ function renderBoxPage() {
         return;
     }
     console.log('[BOX] db.player.box =', db?.player?.box);
+    
+    // 确保交通数据已加载（包含 PC_Terminal 位置）
+    if (!transitData.loaded) {
+        await loadTransitData();
+    }
 
-    // A. 区域锁判定 (location 可能是对象或字符串)
+    // A. 信号覆盖判定（基于 PC_Terminal 信号塔）
+    // 规则：Z区全覆盖 OR 在任意 PC_Terminal 的 3 格范围内
     const locData = db?.world_state?.location;
-    const currentLoc = (typeof locData === 'string' 
-        ? locData 
-        : (locData?.x !== undefined && locData?.y !== undefined 
-            ? getQuadrantFromCoords(locData.x, locData.y) 
-            : 'Z')
-    ).toUpperCase();
-    const zoneName = ZoneDB[currentLoc]?.label || 'Unkown Zone';
-    boxState.isLocked = !ALLOWED_ZONES.includes(currentLoc);
+    const playerX = locData?.x ?? 0;
+    const playerY = locData?.y ?? 0;
+    const currentRegion = getRegionByCoords(playerX, playerY);
+    const zoneName = ZoneDB[currentRegion]?.label || 'Unknown Zone';
+    
+    // 检查信号覆盖
+    boxState.signalStatus = isInSignalCoverage(playerX, playerY);
+    boxState.isLocked = !boxState.signalStatus.covered;
+    
+    console.log('[BOX] 信号状态:', boxState.signalStatus);
     
     // 添加/移除 locked class
     if (boxState.isLocked) {
@@ -1428,18 +1492,19 @@ function renderBoxPage() {
     }
     html += `</div></div>`;
 
-    // C. 锁区覆盖层
+    // C. 信号丢失覆盖层
     if (boxState.isLocked) {
-        const errorMsgByZone = {
-            'S': 'WARNING: 暗影区强干扰覆盖',
-            'A': 'SECURITY: 竞技场比赛通讯屏蔽',
-            'DEFAULT': 'ERR_CONNECTION_REFUSED'
-        };
-        const zoneReason = errorMsgByZone[currentLoc] || errorMsgByZone['DEFAULT'];
+        const status = boxState.signalStatus;
+        const nearestDist = status.nearestDistance !== Infinity 
+            ? (status.nearestDistance * 0.4).toFixed(1) 
+            : '???';
+        const nearestCoords = status.nearestTerminal 
+            ? `[${status.nearestTerminal.x}, ${status.nearestTerminal.y}]` 
+            : '[N/A]';
 
         html += `
         <div class="box-offline-overlay">
-            <div class="boo-bg-deco">SYSTEM LOCKED</div>
+            <div class="boo-bg-deco">SIGNAL LOST</div>
             <div class="boo-content">
                 <div class="boo-icon-wrap">
                     <svg class="boo-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -1454,17 +1519,20 @@ function renderBoxPage() {
                     </svg>
                 </div>
                 <div class="boo-title">SIGNAL LOST</div>
-                <span class="boo-code">/// 0x0000_ACCESS_DENIED ///</span>
+                <span class="boo-code">/// 0x0000_OUT_OF_RANGE ///</span>
                 <div class="boo-alert-box">
-                    <div class="boo-main-reason">${zoneReason}</div>
+                    <div class="boo-main-reason">Box-Link 信号塔超出覆盖范围</div>
                     <div class="boo-hint">
-                        因区域协议限制，只有在 [安全区] 才能使用PC Boxes
+                        当前位置 [${playerX}, ${playerY}] 不在任何 PC_Terminal 信号范围内<br>
+                        最近信号塔: ${nearestCoords} (${nearestDist} km)<br>
+                        信号覆盖半径: ${PC_SIGNAL_RADIUS * 0.4} km
                     </div>
                 </div>
             </div>
             <div class="boo-terminal">
-                <span>> Detecting available networks... [0] found.</span>
-                <span>> Protocol handshake canceled by server_guard.</span>
+                <span>> Scanning for Box-Link terminals... [${transitData.pcTerminals?.length || 0}] found.</span>
+                <span>> Nearest signal: ${nearestDist} km away. Required: ≤${PC_SIGNAL_RADIUS * 0.4} km.</span>
+                <span>> Connection failed: ERR_SIGNAL_WEAK</span>
             </div>
         </div>`;
     }
