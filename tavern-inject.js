@@ -592,7 +592,7 @@
                 const gridInfo = this.getGridInfo(internal.gx, internal.gy);
                 
                 lines.push('【当前位置】');
-                lines.push(`坐标: [${x}, ${y}] ${regionShort}`);
+                lines.push(`坐标: [${x}, ${y}] ZONE-${regionShort}`);
                 lines.push(`地表: ${gridInfo.surface || '未知'}`);
                 lines.push(`可通行: ${gridInfo.traversable ? '是' : '否'}`);
                 lines.push(`威胁度: ${gridInfo.threat} (${this.getThreatLabel(gridInfo.threat)})`);
@@ -681,7 +681,7 @@
                 }
                 if (entities.placeAnchor) {
                     const anchorDesc = this.placeAnchor[entities.placeAnchor];
-                    lines.push(`【场所类型】${entities.placeAnchor}`);
+                    lines.push(`【场所类型】${anchorDesc?.name || entities.placeAnchor}`);
                     if (anchorDesc?.desc) lines.push(`  ${anchorDesc.desc}`);
                 }
                 if (entities.warp) {
@@ -742,6 +742,17 @@
                         const npcName = npc.id.replace(/_/g, ' ');
                         lines.push(`  • ${npcName} [${npc.displayX}, ${npc.displayY}]`);
                     }
+                }
+                
+                // ========== 重要地标（全图显示）==========
+                lines.push('');
+                lines.push('【重要地标】');
+                // Player_s_Room: 格子坐标 [30, 22] -> 显示坐标 [5, 4]
+                const playerRoomCoords = this.toDisplayCoords(30, 22);
+                const playerRoomDesc = this.placeAnchor['Player_s_Room'] || this.service['Player_s_Room'];
+                lines.push(`  • 私人房间 (Personal Quarters) [${playerRoomCoords.x}, ${playerRoomCoords.y}] ZONE-Z`);
+                if (playerRoomDesc?.desc) {
+                    lines.push(`    ${playerRoomDesc.desc}`);
                 }
                 
                 // ========== 周围环境（半径2格）==========

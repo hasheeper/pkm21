@@ -494,7 +494,7 @@
   },
   "Player_s_Room": {
     "name": "Personal Quarters",
-    "desc": "属于主角的私人空间（位于Z区员工宿舍内）。虽然不大，但这有你的私人仓库终端和还没玩完的游戏机。"
+    "desc": "属于你的私人空间（位于Z区学生宿舍内）。虽然不大，但这有你的私人仓库终端和还没玩完的游戏机。"
   },
   "PC_Terminal": {
     "name": "Box-Link Terminal",
