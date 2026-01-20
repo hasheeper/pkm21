@@ -2146,37 +2146,94 @@ const TacticalSystem = {
             item.className = 'encounter-pokemon-item';
             item.dataset.index = index;
             item.style.cssText = `
-                background: rgba(243, 156, 18, 0.08);
-                border: 2px solid rgba(243, 156, 18, 0.2);
+                background: rgba(0, 0, 0, 0.02);
+                border: 1px solid rgba(0, 0, 0, 0.08);
                 border-radius: 8px;
-                padding: 16px;
-                margin-bottom: 12px;
+                padding: 12px;
+                margin-bottom: 10px;
                 cursor: pointer;
                 transition: all 0.2s;
                 display: flex;
-                justify-content: space-between;
                 align-items: center;
+                gap: 12px;
             `;
             
-            const levelRange = poke.level_range || '??';
+            // 获取宝可梦名称和数据
+            const pokemonId = poke.id || 'unknown';
+            const pokemonName = pokemonId.replace(/_/g, ' ').toUpperCase();
+            const level = poke.level || '??';
             const rarity = poke.rarity || 'common';
+            
             const rarityColors = {
-                common: '#95a5a6',
-                uncommon: '#3498db',
-                rare: '#9b59b6',
-                epic: '#e74c3c',
-                legendary: '#f39c12'
+                common: '#b2bec3',
+                uncommon: '#00b894',
+                rare: '#0984e3',
+                boss: '#e17055'
             };
-            const rarityColor = rarityColors[rarity] || '#95a5a6';
+            const rarityColor = rarityColors[rarity] || '#b2bec3';
+            
+            // 使用现有的图片 URL 逻辑
+            const seedIdWithHyphen = pokemonId.toLowerCase().replace(/[^a-z0-9-]/g, '');
+            const seedIdCompact = pokemonId.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const regionalForms = ['alola', 'galar', 'hisui', 'paldea'];
+            const isRegionalForm = regionalForms.some(r => seedIdWithHyphen.includes(`-${r}`) || seedIdWithHyphen.endsWith(r));
+            
+            let imageUrl, fallbackUrl;
+            if (isRegionalForm) {
+                let baseId = seedIdCompact;
+                for (const r of regionalForms) {
+                    if (baseId.endsWith(r)) {
+                        baseId = baseId.slice(0, -r.length);
+                        break;
+                    }
+                }
+                let pokespriteId = seedIdWithHyphen;
+                for (const r of regionalForms) {
+                    if (seedIdCompact.endsWith(r) && !pokespriteId.includes(`-${r}`)) {
+                        pokespriteId = baseId + '-' + r;
+                        break;
+                    }
+                }
+                imageUrl = `https://raw.githubusercontent.com/msikma/pokesprite/master/pokemon-gen8/regular/${pokespriteId}.png`;
+                fallbackUrl = `https://play.pokemonshowdown.com/sprites/gen5/${baseId}.png`;
+            } else {
+                imageUrl = `https://play.pokemonshowdown.com/sprites/gen5/${seedIdCompact}.png`;
+                fallbackUrl = `https://play.pokemonshowdown.com/sprites/ani/${seedIdCompact}.gif`;
+            }
             
             item.innerHTML = `
-                <div style="flex: 1;">
-                    <div style="font-family: 'Chakra Petch', monospace; font-weight: 800; font-size: 16px; color: #2c3e50; margin-bottom: 4px;">
-                        ${poke.name}
+                <div style="
+                    width: 48px;
+                    height: 48px;
+                    background: white;
+                    border-radius: 6px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+                    flex-shrink: 0;
+                ">
+                    <img src="${imageUrl}" 
+                         data-fallback="${fallbackUrl}"
+                         style="width: 40px; height: 40px; image-rendering: pixelated;"
+                         onerror="if(!this.dataset.tried){this.dataset.tried='1';this.src=this.dataset.fallback;}else{this.style.display='none';this.parentElement.innerHTML='<div style=\\'color:#999;font-size:20px\\'>?</div>';}"
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                    <div style="font-family: 'Exo 2', sans-serif; font-weight: 900; font-size: 13px; color: #2c3e50; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${pokemonName}
                     </div>
-                    <div style="font-family: 'Exo 2', sans-serif; font-size: 11px; color: rgba(0, 0, 0, 0.6);">
-                        Lv.${levelRange} · <span style="color: ${rarityColor}; font-weight: 700;">${rarity.toUpperCase()}</span>
+                    <div style="font-family: 'Exo 2', sans-serif; font-size: 10px; color: ${rarityColor}; font-weight: 700;">
+                        ${rarity.toUpperCase()}
                     </div>
+                </div>
+                <div style="
+                    font-family: 'Chakra Petch', monospace;
+                    font-weight: 900;
+                    font-size: 14px;
+                    color: #e67e22;
+                    margin-right: 8px;
+                ">
+                    Lv.${level}
                 </div>
                 <div style="
                     background: linear-gradient(135deg, #f39c12, #e67e22);
@@ -2185,8 +2242,10 @@ const TacticalSystem = {
                     border-radius: 6px;
                     font-family: 'Exo 2', sans-serif;
                     font-weight: 800;
-                    font-size: 11px;
+                    font-size: 10px;
                     letter-spacing: 0.5px;
+                    box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3);
+                    flex-shrink: 0;
                 ">
                     BATTLE
                 </div>
@@ -2244,15 +2303,17 @@ const TacticalSystem = {
         this._copyToClipboard(encounterText);
         
         // 显示通知
-        this._showEncounterNotification(`遭遇 ${pokemon.name}！`, true);
+        const pokemonName = (pokemon.id || 'Unknown').replace(/_/g, ' ').toUpperCase();
+        this._showEncounterNotification(`遭遇 ${pokemonName}！`, true);
         
-        console.log('[Tactical] 触发遭遇战:', pokemon.name);
+        console.log('[Tactical] 触发遭遇战:', pokemonName);
     },
     
     // 生成遭遇战提示词
     _generateEncounterPrompt: function(pokemon) {
         const currentInfo = this._getGridFullInfo(this.playerGrid.x, this.playerGrid.y);
-        const levelRange = pokemon.level_range || '??';
+        const pokemonName = (pokemon.id || 'Unknown').replace(/_/g, ' ').toUpperCase();
+        const level = pokemon.level || '??';
         const rarity = pokemon.rarity || 'common';
         
         const lines = [];
@@ -2260,8 +2321,8 @@ const TacticalSystem = {
         lines.push('');
         lines.push(`玩家在 [${currentInfo.displayX}, ${currentInfo.displayY}] 遭遇了野生宝可梦！`);
         lines.push('');
-        lines.push(`▶ 宝可梦: ${pokemon.name}`);
-        lines.push(`▶ 等级: Lv.${levelRange}`);
+        lines.push(`▶ 宝可梦: ${pokemonName}`);
+        lines.push(`▶ 等级: Lv.${level}`);
         lines.push(`▶ 稀有度: ${rarity}`);
         lines.push('');
         lines.push(`【当前环境】`);
