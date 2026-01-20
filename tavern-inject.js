@@ -475,7 +475,7 @@
             },
             
             // 生成完整的位置上下文文本
-            generateContextText(x, y, quadrant) {
+            generateContextText(x, y) {
                 const lines = [];
                 
                 // 获取大区
@@ -1313,8 +1313,7 @@
                 // 生成完整的位置上下文文本
                 let contextText = LocationContextBackend.generateContextText(
                     location.x, 
-                    location.y, 
-                    location.quadrant || 'NE'
+                    location.y
                 );
                 
                 // 添加当前格子的宝可梦信息

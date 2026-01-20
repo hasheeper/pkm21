@@ -349,8 +349,7 @@ function updateCoordsFromEra() {
         if (typeof loc.x === 'number' && typeof loc.y === 'number') {
             currentMapCoords = {
                 x: loc.x,
-                y: loc.y,
-                quadrant: loc.quadrant || 'Z'
+                y: loc.y
             };
             updateCoordsDisplay(currentMapCoords);
             console.log('[PKM] 从 ERA 更新坐标:', currentMapCoords);
@@ -961,7 +960,12 @@ function renderBoxPage() {
 
     // A. 区域锁判定 (location 可能是对象或字符串)
     const locData = db?.world_state?.location;
-    const currentLoc = (typeof locData === 'string' ? locData : (locData?.quadrant || 'Z')).toUpperCase();
+    const currentLoc = (typeof locData === 'string' 
+        ? locData 
+        : (locData?.x !== undefined && locData?.y !== undefined 
+            ? getQuadrantFromCoords(locData.x, locData.y) 
+            : 'Z')
+    ).toUpperCase();
     const zoneName = ZoneDB[currentLoc]?.label || 'Unkown Zone';
     boxState.isLocked = !ALLOWED_ZONES.includes(currentLoc);
     
@@ -1688,9 +1692,14 @@ function renderDashboard() {
     const player = db?.player || {};
     const world = db?.world_state || {};
     const playerName = player.name || 'TRAINER';
-    // location 可能是对象 {x, y, quadrant} 或字符串
+    // location 可能是对象 {x, y} 或字符串
     const locData = world.location;
-    const currLocCode = (typeof locData === 'string' ? locData : (locData?.quadrant || 'Z')).toUpperCase();
+    const currLocCode = (typeof locData === 'string' 
+        ? locData 
+        : (locData?.x !== undefined && locData?.y !== undefined 
+            ? getQuadrantFromCoords(locData.x, locData.y) 
+            : 'Z')
+    ).toUpperCase();
     const currZone = ZoneDB[currLocCode] || { name: 'UNKNOWN', label: '---', color: '#b2bec3', shadow: 'rgba(0,0,0,0.1)' };
 
     // 计算 Box 使用情况
@@ -1965,7 +1974,20 @@ window.handleTileClick = function(tileId) {
    ============================================================ */
 
 // 当前坐标缓存
-let currentMapCoords = { x: 0, y: 0, quadrant: 'Z' };
+let currentMapCoords = { x: 0, y: 0 };
+
+// 根据坐标自动判断象限
+function getQuadrantFromCoords(x, y) {
+    if (x > 0 && y > 0) return "S";     // 东北 NE
+    if (x < 0 && y > 0) return "A";     // 西北 NW
+    if (x < 0 && y < 0) return "B";     // 西南 SW
+    if (x > 0 && y < 0) return "N";     // 东南 SE
+    if (x === 0 && y > 0) return "A/S";
+    if (x === 0 && y < 0) return "B/N";
+    if (y === 0 && x > 0) return "S/N";
+    if (y === 0 && x < 0) return "A/B";
+    return "Z"; // 原点或未知
+}
 
 // 更新 Dashboard 磁贴坐标显示
 function updateCoordsDisplay(coords) {
@@ -2040,15 +2062,14 @@ function setupMapCallbacks(iframe) {
         // 设置位置变更回调
         mapWindow.onPlayerLocationChange = function(coords) {
             console.log('[PKM] 收到位置变更:', coords);
-            currentMapCoords = coords;
-            updateCoordsDisplay(coords);
+            currentMapCoords = { x: coords.x, y: coords.y };
+            updateCoordsDisplay(currentMapCoords);
             
             // 更新 ERA 数据
             if (db && db.world_state) {
                 db.world_state.location = {
                     x: coords.x,
-                    y: coords.y,
-                    quadrant: coords.quadrant
+                    y: coords.y
                 };
             }
             
@@ -2096,8 +2117,7 @@ function sendLocationVariableEdit(coords) {
         world_state: {
             location: {
                 x: coords.x,
-                y: coords.y,
-                quadrant: coords.quadrant
+                y: coords.y
             }
         }
     };
