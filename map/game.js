@@ -126,6 +126,10 @@ window.setPlayerPosition = function(displayCoords) {
     playerState.gy = internal.gy;
     console.log('[MAP] 设置玩家位置:', displayCoords, '-> 内部坐标:', internal);
     updatePlayerCoordsUI();
+    // 同步更新 RouteSystem 起点
+    if (window.RouteSystem) {
+        RouteSystem.setOrigin(internal.gx, internal.gy);
+    }
     // 只有在地图数据加载完成后才居中相机
     if (levelData && levelData.pxWid) {
         centerCamera();
