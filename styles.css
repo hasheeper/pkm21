@@ -4189,3 +4189,49 @@ body {
     from { opacity: 0; transform: translateY(5px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* =========================================
+   LOCKED Badge Styles
+   ========================================= */
+.locked-badge {
+    display: inline-block;
+    font-family: 'Chakra Petch', monospace;
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: #95a5a6;
+    background: rgba(149, 165, 166, 0.15);
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(149, 165, 166, 0.3);
+}
+
+.locked-badge-small {
+    display: inline-block;
+    font-family: 'Chakra Petch', monospace;
+    font-size: 0.5rem;
+    font-weight: 700;
+    color: #95a5a6;
+    background: rgba(149, 165, 166, 0.15);
+    padding: 1px 4px;
+    border-radius: 2px;
+    margin-left: 6px;
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(149, 165, 166, 0.3);
+}
+
+.live-tile.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    filter: grayscale(0.6);
+}
+
+.live-tile.disabled .mini-header-icon,
+.live-tile.disabled .dock-icon {
+    opacity: 0.4;
+}
+
+.live-tile.disabled .t-glow {
+    display: none;
+}

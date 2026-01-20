@@ -917,6 +917,30 @@ function initStickyStatusBar() {
     statusClockTimer = setInterval(updateClock, 60 * 1000);
 }
 
+const PERIOD_LABELS_EN = {
+    '黎明': 'Dawn',
+    '早晨': 'Morning',
+    '正午': 'Noon',
+    '下午': 'Afternoon',
+    '傍晚': 'Evening',
+    '夜晚': 'Night',
+    '午夜': 'Midnight',
+    dawn: 'Dawn',
+    morning: 'Morning',
+    noon: 'Noon',
+    afternoon: 'Afternoon',
+    evening: 'Evening',
+    night: 'Night',
+    midnight: 'Midnight'
+};
+
+function getEnglishPeriodLabel(period) {
+    if (!period) return 'Unknown';
+    if (PERIOD_LABELS_EN[period]) return PERIOD_LABELS_EN[period];
+    const lower = typeof period === 'string' ? period.toLowerCase() : '';
+    return PERIOD_LABELS_EN[lower] || period;
+}
+
 function updateClock() {
     const clockEl = document.getElementById('sys-clock');
     if (!clockEl) return;
@@ -924,12 +948,11 @@ function updateClock() {
     // 使用 ERA 游戏时间而非现实时间
     const timeData = db?.world_state?.time;
     if (timeData && timeData.period) {
-        // 显示格式: DAY1-早晨
         const dayNum = timeData.derived?.dayOfYear || 1;
-        const period = timeData.period || '未知';
-        clockEl.textContent = `DAY${dayNum}-${period}`;
+        const periodLabel = getEnglishPeriodLabel(timeData.period);
+        clockEl.textContent = `DAY${dayNum}-${periodLabel}`;
     } else {
-        clockEl.textContent = 'DAY1-早晨';
+        clockEl.textContent = 'DAY1-Morning';
     }
 }
 
@@ -2412,7 +2435,7 @@ function renderDashboard() {
                     </div>
                 </div>
 
-                <div class="live-tile box-tactical theme-slate small-h user-select-none disabled" onclick="handleTileClick('work')">
+                <div class="live-tile box-tactical theme-slate small-h user-select-none disabled">
                     <div class="t-decoration">
                          <div class="t-watermark">${SystemIcons.gig}</div>
                          <div class="t-stripe"></div>
@@ -2422,7 +2445,8 @@ function renderDashboard() {
                         ${SystemIcons.gig}
                     </div>
                     <div class="mini-body">
-                         <span class="mini-title-big" style="color: #2d3436;">WORKLO</span>
+                         <span class="mini-title-big" style="color: #95a5a6;">WORK</span>
+                         <span class="locked-badge">LOCKED</span>
                     </div>
                 </div>
             </div>
@@ -2436,6 +2460,7 @@ function renderDashboard() {
                     <div class="dock-content-row">
                         <div class="dock-icon">${SystemIcons.news}</div>
                         <span class="dock-title">NEWS</span>
+                        <span class="locked-badge-small">LOCKED</span>
                     </div>
                 </div>
 
@@ -2447,6 +2472,7 @@ function renderDashboard() {
                     <div class="dock-content-row">
                         <div class="dock-icon">${SystemIcons.mart}</div>
                         <span class="dock-title">MART</span>
+                        <span class="locked-badge-small">LOCKED</span>
                     </div>
                 </div>
 

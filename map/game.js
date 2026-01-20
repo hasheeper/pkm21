@@ -47,16 +47,13 @@ function toInternalCoords(displayX, displayY) {
 // 获取象限名称
 // 标准地理坐标：北(+Y)上，东(+X)右
 function getQuadrantName(displayX, displayY) {
+    // Z区（中枢区）：中心 6x6 范围
+    if (Math.abs(displayX) <= 6 && Math.abs(displayY) <= 6) return "Z";
     if (displayX > 0 && displayY > 0) return "S"; // 东北 NE 第一象限
     if (displayX < 0 && displayY > 0) return "A"; // 西北 NW 第二象限
     if (displayX < 0 && displayY < 0) return "B"; // 西南 SW 第三象限
     if (displayX > 0 && displayY < 0) return "N"; // 东南 SE 第四象限
-    // 边界情况：在轴上
-    if (displayX === 0 && displayY > 0) return "A/S";
-    if (displayX === 0 && displayY < 0) return "B/N";
-    if (displayY === 0 && displayX > 0) return "S/N";
-    if (displayY === 0 && displayX < 0) return "A/B";
-    return "?"; // 不应该出现
+    return "Z"; // 默认返回 Z
 }
 
 // 格式化坐标显示
