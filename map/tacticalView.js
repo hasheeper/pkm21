@@ -2074,111 +2074,140 @@ const TacticalSystem = {
         console.log('[Tactical] 打开遭遇战弹窗，宝可梦数量:', this._encounterPokemonList.length);
     },
     
-    // 创建遭遇战弹窗 HTML
+    // 创建遭遇战弹窗 HTML（Ver. Dawn 风格）
     _createEncounterPopup: function() {
+        const popupId = 'encounter-popup';
+
         // 移除旧弹窗
-        const oldPopup = document.getElementById('encounter-popup');
-        if (oldPopup) oldPopup.remove();
-        
-        // 创建弹窗容器
+        const existing = document.getElementById(popupId);
+        if (existing) existing.remove();
+
+        const accentColor = '#e67e22';
+
         const popup = document.createElement('div');
-        popup.id = 'encounter-popup';
+        popup.id = popupId;
         popup.style.cssText = `
             position: fixed;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.98);
-            border: 2px solid rgba(0, 0, 0, 0.1);
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transform: translate(-50%, -50%) skewX(-2deg);
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid white;
+            border-radius: 8px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(230, 126, 34, 0.3);
             padding: 0;
             z-index: 10000;
-            min-width: 400px;
-            max-width: 500px;
-            max-height: 70vh;
-            overflow: hidden;
+            width: 620px;
+            max-width: 90vw;
+            max-height: 80vh;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(12px);
+            font-family: 'Exo 2', sans-serif;
         `;
-        
-        // 标题栏
+
+        const decoStrip = document.createElement('div');
+        decoStrip.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 6px;
+            background: linear-gradient(180deg, #f39c12 0%, #d35400 100%);
+            border-right: 1px solid rgba(255,255,255,0.4);
+        `;
+        popup.appendChild(decoStrip);
+
         const header = document.createElement('div');
         header.style.cssText = `
-            background: linear-gradient(135deg, #f39c12, #e67e22);
-            color: white;
-            padding: 16px 20px;
-            font-family: 'Exo 2', sans-serif;
-            font-weight: 900;
-            font-size: 14px;
-            letter-spacing: 1px;
+            padding: 16px 20px 16px 24px;
+            border-bottom: 2px solid rgba(0,0,0,0.05);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: linear-gradient(90deg, rgba(243,156,18,0.08) 0%, transparent 80%);
         `;
         header.innerHTML = `
-            <span>⚔ WILD POKEMON ENCOUNTER</span>
-            <button id="encounter-close" style="
-                background: rgba(255, 255, 255, 0.2);
-                border: none;
-                color: white;
-                width: 28px;
-                height: 28px;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 18px;
-                line-height: 1;
-                transition: background 0.2s;
-            ">×</button>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="
+                    background:${accentColor}; 
+                    width:24px; height:24px; 
+                    display:flex; align-items:center; justify-content:center;
+                    border-radius:4px; transform: skewX(0deg); 
+                    box-shadow: 0 2px 5px rgba(230,126,34,0.4);
+                ">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-6h2v6zm-1-7.7c-.72 0-1.3-.58-1.3-1.3s.58-1.3 1.3-1.3 1.3.58 1.3 1.3-.58 1.3-1.3 1.3z"/></svg>
+                </div>
+                <div>
+                    <div style="font-weight:900; font-size:16px; color:#2c3e50; letter-spacing:1px; line-height:1.2;">TACTICAL ENCOUNTER</div>
+                    <div style="font-size:10px; color:${accentColor}; font-weight:700; letter-spacing:2px; opacity:0.8;">HOSTILE ENTITIES DETECTED</div>
+                </div>
+            </div>
         `;
-        
-        // 宝可梦列表容器
+
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '×';
+        closeBtn.style.cssText = `
+            background: transparent;
+            border: none;
+            font-size: 28px;
+            font-weight: 300;
+            color: #95a5a6;
+            cursor: pointer;
+            padding: 0 10px;
+            line-height: 1;
+            transition: color 0.2s;
+        `;
+        closeBtn.addEventListener('mouseenter', () => closeBtn.style.color = '#e74c3c');
+        closeBtn.addEventListener('mouseleave', () => closeBtn.style.color = '#95a5a6');
+        closeBtn.addEventListener('click', () => popup.remove());
+        header.appendChild(closeBtn);
+
         const listContainer = document.createElement('div');
+        listContainer.className = 'custom-scrollbar';
         listContainer.style.cssText = `
-            padding: 20px;
+            padding: 20px 24px;
             overflow-y: auto;
             flex: 1;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 12px;
+            max-height: 60vh;
         `;
-        
-        // 生成宝可梦列表
-        this._encounterPokemonList.forEach((poke, index) => {
-            const item = document.createElement('div');
-            item.className = 'encounter-pokemon-item';
-            item.dataset.index = index;
-            item.style.cssText = `
-                background: rgba(0, 0, 0, 0.02);
-                border: 1px solid rgba(0, 0, 0, 0.08);
-                border-radius: 8px;
-                padding: 12px;
-                margin-bottom: 10px;
-                cursor: pointer;
-                transition: all 0.2s;
-                display: flex;
-                align-items: center;
-                gap: 12px;
-            `;
-            
-            // 获取宝可梦名称和数据
+
+        const scrollStyle = document.createElement('style');
+        scrollStyle.innerHTML = `
+            #${popupId} .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+            #${popupId} .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+            #${popupId} .custom-scrollbar::-webkit-scrollbar-thumb { background: #dfe6e9; border-radius: 4px; }
+            #${popupId} .pkm-card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); border-color: #f39c12 !important; }
+            #${popupId} .pkm-btn:active { transform: translateY(1px); }
+        `;
+        popup.appendChild(scrollStyle);
+
+        const rarityConf = {
+            common:   { c: '#b2bec3' },
+            uncommon: { c: '#00b894' },
+            rare:     { c: '#0984e3' },
+            boss:     { c: '#e74c3c' }
+        };
+
+        const regionalForms = ['alola', 'galar', 'hisui', 'paldea'];
+
+        this._encounterPokemonList.forEach((poke) => {
             const pokemonId = poke.id || 'unknown';
             const pokemonName = pokemonId.replace(/_/g, ' ').toUpperCase();
             const level = poke.level || '??';
-            const rarity = poke.rarity || 'common';
-            
-            const rarityColors = {
-                common: '#b2bec3',
-                uncommon: '#00b894',
-                rare: '#0984e3',
-                boss: '#e17055'
-            };
-            const rarityColor = rarityColors[rarity] || '#b2bec3';
-            
-            // 使用现有的图片 URL 逻辑
+            const rarity = (poke.rarity || 'common').toLowerCase();
+            const conf = rarityConf[rarity] || rarityConf.common;
+
             const seedIdWithHyphen = pokemonId.toLowerCase().replace(/[^a-z0-9-]/g, '');
             const seedIdCompact = pokemonId.toLowerCase().replace(/[^a-z0-9]/g, '');
-            const regionalForms = ['alola', 'galar', 'hisui', 'paldea'];
             const isRegionalForm = regionalForms.some(r => seedIdWithHyphen.includes(`-${r}`) || seedIdWithHyphen.endsWith(r));
-            
-            let imageUrl, fallbackUrl;
+
+            let imageUrl;
+            let fallbackUrl;
             if (isRegionalForm) {
                 let baseId = seedIdCompact;
                 for (const r of regionalForms) {
@@ -2200,90 +2229,109 @@ const TacticalSystem = {
                 imageUrl = `https://play.pokemonshowdown.com/sprites/gen5/${seedIdCompact}.png`;
                 fallbackUrl = `https://play.pokemonshowdown.com/sprites/ani/${seedIdCompact}.gif`;
             }
-            
-            item.innerHTML = `
-                <div style="
-                    width: 48px;
-                    height: 48px;
-                    background: white;
-                    border-radius: 6px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-                    flex-shrink: 0;
-                ">
-                    <img src="${imageUrl}" 
-                         data-fallback="${fallbackUrl}"
-                         style="width: 40px; height: 40px; image-rendering: pixelated;"
-                         onerror="if(!this.dataset.tried){this.dataset.tried='1';this.src=this.dataset.fallback;}else{this.style.display='none';this.parentElement.innerHTML='<div style=\\'color:#999;font-size:20px\\'>?</div>';}"
+
+            const card = document.createElement('div');
+            card.className = 'pkm-card';
+            card.style.cssText = `
+                position: relative;
+                background: #fff;
+                border: 1px solid #edf2f7;
+                border-radius: 6px;
+                padding: 10px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                overflow: hidden;
+            `;
+
+            const imgContainer = document.createElement('div');
+            imgContainer.style.cssText = `
+                width: 56px; height: 56px;
+                background: #f8f9fa;
+                border-radius: 6px;
+                display: flex; align-items: center; justify-content: center;
+                border: 1px solid #e1e8ef;
+                flex-shrink: 0;
+            `;
+            const img = document.createElement('img');
+            img.style.cssText = 'width:48px; height:48px; object-fit:contain; image-rendering:pixelated;';
+            img.src = imageUrl;
+            img.dataset.fallback = fallbackUrl;
+            img.onerror = function() {
+                if (!this.dataset.tried) {
+                    this.dataset.tried = '1';
+                    this.src = this.dataset.fallback;
+                } else {
+                    this.style.opacity = '0.2';
+                }
+            };
+            imgContainer.appendChild(img);
+
+            const info = document.createElement('div');
+            info.style.cssText = 'flex:1; display:flex; flex-direction:column; justify-content:center; overflow:hidden;';
+            info.innerHTML = `
+                <div style="font-weight:800; font-size:14px; color:#2d3436; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                    ${pokemonName}
                 </div>
-                <div style="flex: 1; min-width: 0;">
-                    <div style="font-family: 'Exo 2', sans-serif; font-weight: 900; font-size: 13px; color: #2c3e50; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        ${pokemonName}
-                    </div>
-                    <div style="font-family: 'Exo 2', sans-serif; font-size: 10px; color: ${rarityColor}; font-weight: 700;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span style="font-weight:700; font-size:9px; color:#fff; background:${conf.c}; padding:1px 5px; border-radius:3px;">
                         ${rarity.toUpperCase()}
-                    </div>
-                </div>
-                <div style="
-                    font-family: 'Chakra Petch', monospace;
-                    font-weight: 900;
-                    font-size: 14px;
-                    color: #e67e22;
-                    margin-right: 8px;
-                ">
-                    Lv.${level}
-                </div>
-                <div style="
-                    background: linear-gradient(135deg, #f39c12, #e67e22);
-                    color: white;
-                    padding: 8px 16px;
-                    border-radius: 6px;
-                    font-family: 'Exo 2', sans-serif;
-                    font-weight: 800;
-                    font-size: 10px;
-                    letter-spacing: 0.5px;
-                    box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3);
-                    flex-shrink: 0;
-                ">
-                    BATTLE
+                    </span>
                 </div>
             `;
-            
-            // 悬停效果
-            item.addEventListener('mouseenter', () => {
-                item.style.background = 'rgba(243, 156, 18, 0.15)';
-                item.style.borderColor = 'rgba(243, 156, 18, 0.5)';
-                item.style.transform = 'translateX(4px)';
+
+            const actionCol = document.createElement('div');
+            actionCol.style.cssText = 'text-align:right;';
+
+            const lvlDiv = document.createElement('div');
+            lvlDiv.style.cssText = "font-family:'Chakra Petch'; font-weight:700; font-size:14px; color:#e17055; margin-bottom:4px;";
+            lvlDiv.innerText = `Lv.${level}`;
+
+            const engageBtn = document.createElement('div');
+            engageBtn.className = 'pkm-btn';
+            engageBtn.style.cssText = `
+                background: transparent;
+                border: 1px solid #e17055;
+                color: #e17055;
+                font-size: 10px;
+                font-weight: 800;
+                padding: 3px 10px;
+                border-radius: 4px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                transition: all 0.2s;
+            `;
+            engageBtn.innerHTML = '<span style="font-style:normal;">⚔</span> ENGAGE';
+
+            card.addEventListener('mouseenter', () => {
+                engageBtn.style.background = '#e17055';
+                engageBtn.style.color = '#fff';
             });
-            item.addEventListener('mouseleave', () => {
-                item.style.background = 'rgba(243, 156, 18, 0.08)';
-                item.style.borderColor = 'rgba(243, 156, 18, 0.2)';
-                item.style.transform = 'translateX(0)';
+            card.addEventListener('mouseleave', () => {
+                engageBtn.style.background = 'transparent';
+                engageBtn.style.color = '#e17055';
             });
-            
-            // 点击事件
-            item.addEventListener('click', () => {
-                this._triggerEncounter(poke);
-            });
-            
-            listContainer.appendChild(item);
+            card.addEventListener('click', () => this._triggerEncounter(poke));
+
+            actionCol.appendChild(lvlDiv);
+            actionCol.appendChild(engageBtn);
+
+            card.appendChild(imgContainer);
+            card.appendChild(info);
+            card.appendChild(actionCol);
+
+            listContainer.appendChild(card);
         });
-        
+
         popup.appendChild(header);
         popup.appendChild(listContainer);
         document.body.appendChild(popup);
-        
-        // 关闭按钮事件
-        document.getElementById('encounter-close').addEventListener('click', () => {
-            popup.remove();
-        });
-        
-        // 点击外部关闭
+
         setTimeout(() => {
             const closeOnOutside = (e) => {
-                if (e.target === popup) {
+                if (!popup.contains(e.target)) {
                     popup.remove();
                     document.removeEventListener('click', closeOnOutside);
                 }

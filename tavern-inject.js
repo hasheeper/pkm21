@@ -1401,20 +1401,34 @@
                 const levelRange = this.getLevelRange(threat);
                 
                 for (let i = 0; i < count; i++) {
-                    const rarity = this.getRarityPool(threat);
-                    if (!rarity) continue;
+                    const requestedRarity = this.getRarityPool(threat);
+                    if (!requestedRarity) continue;
                     
-                    let pool = surfacePool[rarity];
-                    if (!pool || pool.length === 0) {
+                    // 按优先级尝试获取池子，记录实际使用的稀有度
+                    let pool = null;
+                    let actualRarity = requestedRarity;
+                    
+                    if (surfacePool[requestedRarity] && surfacePool[requestedRarity].length > 0) {
+                        pool = surfacePool[requestedRarity];
+                        actualRarity = requestedRarity;
+                    } else if (requestedRarity === 'boss' && surfacePool['rare'] && surfacePool['rare'].length > 0) {
+                        pool = surfacePool['rare'];
+                        actualRarity = 'rare';
+                    } else if ((requestedRarity === 'boss' || requestedRarity === 'rare') && surfacePool['uncommon'] && surfacePool['uncommon'].length > 0) {
+                        pool = surfacePool['uncommon'];
+                        actualRarity = 'uncommon';
+                    } else if (surfacePool['common'] && surfacePool['common'].length > 0) {
                         pool = surfacePool['common'];
+                        actualRarity = 'common';
                     }
+                    
                     if (!pool || pool.length === 0) continue;
                     
                     const pokemon = this.pickFromPool(pool, levelRange);
                     if (pokemon) {
                         results.push({
                             ...pokemon,
-                            rarity,
+                            rarity: actualRarity,
                             biome: biomeZone,
                             surface: surfaceType,
                             threat
