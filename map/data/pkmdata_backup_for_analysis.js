@@ -64,8 +64,6 @@ window.SPAWN_TABLES_DATA = {
         { id: "snorlax", min: 45 },
         { id: "reuniclus", min: 45 },
       ],
-
-      legendary: [{ id: "type:null", min: 70 }],
     },
 
     Flower_Field: {
@@ -595,8 +593,6 @@ window.SPAWN_TABLES_DATA = {
         { id: "rabsca", min: 35 },
         { id: "venusaur", min: 50 },
       ],
-
-      legendary: [{ id: "tapu-lele", min: 70 }],
     },
 
     Light_Forest: {
@@ -1651,8 +1647,6 @@ window.SPAWN_TABLES_DATA = {
         { id: "tinkaton", min: 40 },
         { id: "conkeldurr", min: 45 },
       ],
-
-      legendary: [{ id: "regieleki", min: 70 }],
     },
 
     Slum_Pavement: {
@@ -1981,8 +1975,6 @@ window.SPAWN_TABLES_DATA = {
         { id: "gengar", min: 45 },
         { id: "crobat", min: 45 },
       ],
-
-      legendary: [{ id: "okidogi", min: 70 }],
     },
 
     Standard_Grass: {
@@ -2129,8 +2121,6 @@ window.SPAWN_TABLES_DATA = {
         { id: "garbodor", min: 40 },
         { id: "kabutops", min: 40 },
       ],
-
-      legendary: [{ id: "moltres-galar", min: 70 }],
     },
 
     Industrial: {
@@ -2514,8 +2504,6 @@ window.SPAWN_TABLES_DATA = {
 
         { id: "brambleghast", min: 38 },
       ],
-
-      legendary: [{ id: "regigigas", min: 70 }],
     },
 
     Light_Forest: {
@@ -2828,8 +2816,6 @@ window.SPAWN_TABLES_DATA = {
         { id: "overqwil", min: 40 },
 
       ],
-
-      legendary: [{ id: "enamorus", min: 70 }],
     },
   },
 
@@ -2895,8 +2881,6 @@ window.SPAWN_TABLES_DATA = {
         { id: "aromatisse", min: 40 },
         { id: "muk-alola", min: 42 },
       ],
-
-      legendary: [{ id: "cresselia", min: 70 }],
     },
 
     Light_Forest: {
@@ -2952,8 +2936,6 @@ window.SPAWN_TABLES_DATA = {
         { id: "corviknight", min: 50 },
         { id: "toxtricity-low-key", min: 42 },
       ],
-
-      legendary: [{ id: "fezandipiti", min: 70 }],
     },
   },
 
@@ -3123,8 +3105,6 @@ window.SPAWN_TABLES_DATA = {
         { id: "garganacl", min: 45 },
         { id: "gliscor", min: 45 },
       ],
-
-      legendary: [{ id: "ting-lu", min: 70 }],
     },
 
     Pavement: {
@@ -3281,8 +3261,6 @@ window.SPAWN_TABLES_DATA = {
         { id: "rhyperior", min: 50 },
         { id: "golem-alola", min: 45 },
       ],
-
-      legendary: [{ id: "heatran", min: 70 }],
     },
 
     Scorched_Earth: {
@@ -3471,10 +3449,7 @@ window.SPAWN_TABLES_DATA = {
         { id: "armarouge", min: 50 },
         { id: "ceruledge", min: 50 },
       ],
-      legendary: [
-        { id: "moltres", min: 70 },
-        { id: "chi-yu", min: 70 },
-      ],
+      legendary: [{ id: "moltres", min: 70 }],
     },
 
     Snowfield: {
@@ -3791,11 +3766,6 @@ window.SPAWN_TABLES_DATA = {
         { id: "arboliva", min: 45 },
         { id: "yanmega", min: 40 },
       ],
-
-      legendary: [
-        { id: "tapu-bulu", min: 70 },
-        { id: "zapdos-galar", min: 70 },
-      ],
     },
   },
 
@@ -4015,8 +3985,6 @@ window.SPAWN_TABLES_DATA = {
         { id: "glalie", min: 45 },
         { id: "walrein", min: 50 },
       ],
-
-      legendary: [{ id: "chien-pao", min: 70 }],
     },
   },
 
@@ -4094,8 +4062,6 @@ window.SPAWN_TABLES_DATA = {
         { id: "farigiraf", min: 45 },
         { id: "rapidash", min: 45 },
       ],
-
-      legendary: [{ id: "tapu-koko", min: 70 }],
     },
 
     High_Grass: {
@@ -4164,10 +4130,7 @@ window.SPAWN_TABLES_DATA = {
         { id: "haxorus", min: 60 },
       ],
 
-      legendary: [
-        { id: "raikou", min: 70 },
-        { id: "kubfu", min: 10 },
-      ],
+      legendary: [{ id: "raikou", min: 70 }],
     },
   },
 
@@ -4339,8 +4302,6 @@ window.SPAWN_TABLES_DATA = {
         { id: "swampert", min: 48 },
         { id: "quaquaval", min: 45 },
       ],
-
-      legendary: [{ id: "mesprit", min: 70 }],
     },
   },
 
@@ -4460,8 +4421,6 @@ window.SPAWN_TABLES_DATA = {
         { id: "poliwrath", min: 42 },
         { id: "politoed", min: 42 },
       ],
-
-      legendary: [{ id: "azelf", min: 70 }],
     },
   },
 
@@ -4642,8 +4601,6 @@ window.SPAWN_TABLES_DATA = {
         { id: "goodra-hisui", min: 50 },
         { id: "revavroom", min: 50 },
       ],
-
-      legendary: [{ id: "munkidori", min: 70 }],
     },
 
     Glacial_Water: {
@@ -4680,8 +4637,6 @@ window.SPAWN_TABLES_DATA = {
         { id: "empoleon", min: 50 },
         { id: "baxcalibur", min: 58 },
       ],
-
-      legendary: [{ id: "uxie", min: 70 }],
     },
   },
 
@@ -4930,8 +4885,6 @@ window.SPAWN_TABLES_DATA = {
         { id: "dragapult", min: 60 },
         { id: "wailord", min: 50 },
       ],
-
-      legendary: [{ id: "tapu-fini", min: 70 }],
     },
   },
 
@@ -5131,8 +5084,6 @@ window.SPAWN_TABLES_DATA = {
         { id: "archeops", min: 50 },
         { id: "dracovish", min: 55 },
       ],
-
-      legendary: [{ id: "regidrago", min: 70 }],
     },
   },
 
@@ -5280,12 +5231,12 @@ window.SPAWN_TABLES_DATA = {
       ],
 
       boss: [
+
         { id: "baxcalibur", min: 65 },
         { id: "walrein", min: 55 },
+
         { id: "avalugg-hisui", min: 55 },
       ],
-
-      legendary: [{ id: "articuno-galar", min: 70 }],
     },
   },
 };

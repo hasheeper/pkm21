@@ -379,7 +379,7 @@ const PokemonSpawnEngine = {
     },
     
     /**
-     * 生成附近的多个宝可梦（4-5个）
+     * 生成附近的多个宝可梦（4-5个）+ Legendary 独立判定（1%概率）
      * @param {Object} locationInfo - 来自getPlayerLocationInfo()
      * @returns {Array} 宝可梦数组
      */
@@ -389,16 +389,48 @@ const PokemonSpawnEngine = {
         }
         if (!locationInfo) return [];
         
-        const { threat } = locationInfo;
+        const { threat, surfaceType, biomeZone } = locationInfo;
         
         // 和平区域无宝可梦 (threat=6 或 threat=0)
         if (this.isPeaceZone(threat)) {
             return [];
         }
         
+        // 获取 surfacePool 用于 legendary 判定
+        const tables = window.SPAWN_TABLES_DATA;
+        let surfacePool = null;
+        if (tables) {
+            const resolvedZone = this.resolveZoneName(biomeZone, surfaceType);
+            const zoneTable = tables[resolvedZone];
+            if (zoneTable) {
+                surfacePool = zoneTable[surfaceType];
+            }
+        }
+        
         // 根据威胁度决定生成数量
         const count = 4 + Math.floor(Math.random() * 2); // 4-5个
         const results = [];
+        
+        // ========== Legendary 独立判定（1%概率）==========
+        // Legendary 宝可梦单独判定，不占用普通宝可梦位置
+        if (surfacePool && surfacePool.legendary && surfacePool.legendary.length > 0) {
+            const legendaryRoll = Math.random() * 100;
+            if (legendaryRoll < 1) { // 1% 概率
+                const legendaryPool = surfacePool.legendary;
+                const legendaryPokemon = this.pickFromPool(legendaryPool, { min: 70, max: 80 });
+                if (legendaryPokemon) {
+                    results.push({
+                        ...legendaryPokemon,
+                        rarity: 'legendary',
+                        biome: biomeZone,
+                        resolvedBiome: this.resolveZoneName(biomeZone, surfaceType),
+                        surface: surfaceType,
+                        threat
+                    });
+                    console.log(`[Pokemon] ★ Legendary 出现！${legendaryPokemon.id} Lv.${legendaryPokemon.level}`);
+                }
+            }
+        }
         
         for (let i = 0; i < count; i++) {
             const pokemon = this.spawnOne(locationInfo);
@@ -407,7 +439,7 @@ const PokemonSpawnEngine = {
             }
         }
         
-        // 按等级排序
+        // 按等级排序（legendary 会排在最后因为等级高）
         results.sort((a, b) => a.level - b.level);
         
         return results;

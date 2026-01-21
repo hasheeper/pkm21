@@ -1825,7 +1825,8 @@ const TacticalSystem = {
             common: "#b2bec3",
             uncommon: "#00b894",
             rare: "#0984e3",
-            boss: "#e17055"
+            boss: "#e17055",
+            legendary: "#fdcb6e"  // 金色 - 传说宝可梦
         };
 
         const cols = 2;

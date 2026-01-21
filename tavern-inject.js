@@ -1801,6 +1801,26 @@
                 const results = [];
                 const levelRange = this.getLevelRange(threat);
                 
+                // ========== Legendary 独立判定（1%概率）==========
+                // Legendary 宝可梦单独判定，不占用普通宝可梦位置
+                if (surfacePool.legendary && surfacePool.legendary.length > 0) {
+                    const legendaryRoll = Math.random() * 100;
+                    if (legendaryRoll < 1) { // 1% 概率
+                        const legendaryPool = surfacePool.legendary;
+                        const legendaryPokemon = this.pickFromPool(legendaryPool, { min: 70, max: 80 });
+                        if (legendaryPokemon) {
+                            results.push({
+                                ...legendaryPokemon,
+                                rarity: 'legendary',
+                                biome: biomeZone,
+                                surface: surfaceType,
+                                threat
+                            });
+                            console.log(`[PKM] ★ Legendary 出现！${legendaryPokemon.id} Lv.${legendaryPokemon.level}`);
+                        }
+                    }
+                }
+                
                 for (let i = 0; i < count; i++) {
                     const requestedRarity = this.getRarityPool(threat);
                     if (!requestedRarity) continue;
