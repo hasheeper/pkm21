@@ -436,55 +436,52 @@ const SERENA_DATA = {
         "party": [
             {
                 // [Mega 手/特攻手]
-                // 注意：名字改回基础形态 "Absol"，装备 Mega 石，加上 mechanic:'mega'
+                // 灾兽天使，配合她表演家的身份，同时Mega后的翅膀造型极具美感
                 "name": "Absol", 
                 "lv": 99,
                 "gender": "F",
-                "nature": "Jolly", // 爽朗 (Mega后115速度 + 魔法镜反弹，非常极端的破受配置)
-                "ability": "Justified", // 进化前特性：正义之心 (防恶系联防)
+                "nature": "Jolly", // 爽朗 (Mega后115速度 + 魔法镜反弹)
+                "ability": "Justified", 
                 "item": "Absolite",     // 关键道具：阿勃梭鲁进化石
                 
                 // === 触发器 ===
-                "mechanic": "mega",     // 告诉 AI 和 UI：这也是 Mega 进化的执行者
+                "mechanic": "mega",     
                 
                 "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                // 魔法镜特性下，可以放心强化；突袭收割
                 "moves": ["Sucker Punch", "Play Rough", "Knock Off", "Swords Dance"]
             },
             {
+                // [Ace / 魔法管家]
                 "name": "Delphox",
                 "lv": 99,
                 "gender": "F",
                 "nature": "Timid", // 胆小
-                "ability": "Blaze", // 猛火 (配合高 Trust 的锁血，残血猛火更适合此时的场景)
-                // 或者用 "Magician" 也可以，但猛火作为 Ace 的翻盘能力更强
+                "ability": "Blaze", // 猛火 
                 "item": "Life Orb", 
                 "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
                 
                 "isAce": true, 
-                // 表演家的热情(Passion) 和 羁绊(Trust) 极高
                 "friendship": { "trust": 150, "passion": 255, "insight": 120, "devotion": 100 },
                 
                 "moves": ["Fire Blast", "Psychic", "Dazzling Gleam", "Calm Mind"]
             },
             {
-                // [高速刺客]
+                // [高速刺客] 如同骑士般守护公主的忍者
                 "name": "Greninja",
                 "lv": 93,
                 "gender": "M",
                 "nature": "Naive", // 天真
-                "ability": "Protean", // 变幻自如 (卡洛斯的代表性神特性)
-                "item": "Choice Scarf", // 围巾 (速度线控制)
+                "ability": "Protean", // 变幻自如 
+                "item": "Choice Scarf", // 围巾 
                 "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
                 "moves": ["Ice Beam", "Dark Pulse", "Gunk Shot", "U-turn"]
             },
             {
-                // [神兽位 / 物理核心]
+                // [秩序守护者] 选择了Serena的神兽
                 "name": "Zygarde",
                 "lv": 95,
                 "gender": "N",
                 "nature": "Adamant", // 固执
-                // Power Construct (群聚变形) 是被动触发 (HP<50%)，不需 'mechanic' 控制
                 "ability": "Power Construct", 
                 "item": "Leftovers", 
                 "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
@@ -493,7 +490,7 @@ const SERENA_DATA = {
             {
                 // [特攻爆破] 妖精女王
                 "name": "Sylveon", 
-                "lv": 88, // 稍微拉高等级
+                "lv": 94, 
                 "gender": "F",
                 "nature": "Modest",
                 "ability": "Pixilate", // 妖精皮肤
@@ -502,19 +499,20 @@ const SERENA_DATA = {
                 "moves": ["Hyper Voice", "Psyshock", "Shadow Ball", "Quick Attack"] 
             },
             {
-                // [水盾] 对应原来的 Vaporeon，但等级修复
-                "name": "Vaporeon",
-                "lv": 85, // 修正了原本 Lv.31 的问题
-                "gender": "F",
-                "nature": "Bold", 
-                "ability": "Water Absorb",
-                "item": "Leftovers",
+                "name": "Pangoro",
+                "lv": 95, 
+                "gender": "M",
+                "nature": "Adamant", // 固执
+                "ability": "Iron Fist", // 铁拳 (增强拳击类招式)
+                "item": "Choice Band",  // 讲究头带 (体现“墨镜熊猫”那种谁也不服的狠劲)
                 "stats_meta": { "ivs": { "hp": 31, "atk": 31, "def": 31, "spa": 31, "spd": 31, "spe": 31 }, "ev_level": 252 },
-                "moves": ["Scald", "Wish", "Protect", "Toxic"] // 用 wish 奶队友
+                // 子弹拳必须要（弥补低速），近身战主要输出
+                "moves": ["Close Combat", "Knock Off", "Bullet Punch", "Ice Punch"] 
             }
         ]
     }
 };
+
 
 /* 
  * 角色: 小遥 (May)

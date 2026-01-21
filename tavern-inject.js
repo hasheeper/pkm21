@@ -268,6 +268,70 @@
                 'Iono_Stream_Tower': 'Iono_Levincia_Guild_Tower'
             },
             
+            // NPC 触发词映射字典 (名字多语言对照表)
+            NPC_TRIGGERS: {
+                'lusamine': ['Lusamine', 'ルザミーネ', '露莎米奈', '露莎米那', '露莎米恩', '卢莎米奈'],
+                'erika': ['Erika', 'エリカ', '莉佳', '艾莉嘉'],
+                'roxie': ['Roxie', 'Homika', 'ホミカ', '霍米加', '霍米卡'],
+                'iono': ['Iono', 'Nanjamo', 'ナンジャモ', '奇树', '奇樹'],
+                'marnie': ['Marnie', 'マリィ', '玛俐', '瑪俐', '真俐'],
+                'cynthia': ['Cynthia', 'Shirona', 'シロナ', '竹兰', '竹蘭', '希罗娜', '希羅娜'],
+                'bea': ['Saito', 'サイトウ', '彩豆'],
+                'sonia': ['Sonia', 'ソニア', '索妮亚', '索妮亞'],
+                'gloria': ['Gloria', 'Yuuri', 'ユウリ', '小优', '小優', '優莉'],
+                'rosa': ['Rosa', 'メイ', '鸣依', '鳴依', '芽以'],
+                'dawn': ['Hikari', 'ヒカリ', '小光'],
+                'serena': ['Serena', 'セレナ', '莎莉娜', '瑟蕾娜', '瑟琳娜'],
+                'irida': ['Irida', 'カイ', '珠贝', '珠貝'],
+                'akari': ['Akari', 'ショウ', '小照'],
+                'nessa': ['Nessa', 'Rurina', 'ルリナ', '露璃娜'],
+                'mallow': ['Mallow', 'マオ', '玛奥', '瑪奧', '玛沃'],
+                'lana': ['Suiren', 'スイレン', '水莲', '水蓮'],
+                'lillie': ['Lillie', 'Lilie', 'リーリエ', '莉莉艾', '莉莉愛', '莉莉安'],
+                'hex': ['Hex Maniac', 'Occult Maniac', 'オカルトマニア', '灵异迷', '靈異迷', '海可丝'],
+                'selene': ['Selene', 'Mizuki', 'ミヅキ', '美月'],
+                'juliana': ['Juliana', 'アオイ', '小青'],
+                'may': ['Haruka', 'ハルカ', '小遥', '小遙'],
+                'lacey': ['Lacey', 'Nerine', 'ネリネ', '紫竽', '紫玉', '紫芋'],
+                'misty': ['Misty', 'Kasumi', 'カスミ', '小霞'],
+                'acerola': ['Acerola', 'アセロラ', '阿塞萝拉', '阿塞蘿拉', '阿塞罗拉'],
+                'skyla': ['Skyla', 'Fuuro', 'フウロ', '风露', '風露'],
+                'iris': ['Iris', 'アイリス', '艾莉丝', '艾莉絲', '艾丽丝'],
+                'nemona': ['Nemona', 'ネモ', '妮莫', '尼莫']
+            },
+            
+            // NPC 触发词到地图 NPC ID 的映射
+            NPC_TRIGGER_TO_MAP_ID: {
+                'lusamine': 'Lusamine',
+                'erika': 'Erika',
+                'roxie': 'Roxie',
+                'iono': 'Iono',
+                'marnie': 'Marnie',
+                'cynthia': 'Cynthia',
+                'bea': 'Bea',
+                'sonia': 'Sonia',
+                'gloria': 'Gloria',
+                'rosa': 'Rosa',
+                'dawn': 'Dawn',
+                'serena': 'Serena',
+                'irida': 'Irida',
+                'akari': 'Akari',
+                'nessa': 'Nessa',
+                'mallow': 'Mallow_Lana',  // Mallow 和 Lana 在一起
+                'lana': 'Mallow_Lana',    // Mallow 和 Lana 在一起
+                'lillie': 'Lillie',
+                'hex': 'Hex',
+                'selene': 'Selene',
+                'juliana': 'Juliana',
+                'may': 'May',
+                'lacey': 'Lacey',
+                'misty': 'Misty',
+                'acerola': 'Acerola',
+                'skyla': 'Skyla',
+                'iris': 'Iris',
+                'nemona': 'Nemona'
+            },
+            
             // 获取规范化的交通设施ID
             normalizeTransitId(id) {
                 return this.TRANSIT_ID_MAP[id] || id;
@@ -457,6 +521,98 @@
                 }
                 
                 return npcLocations;
+            },
+            
+            // 扫描文本检测 NPC 触发词（返回匹配到的 NPC key 列表）
+            scanForNpcTriggers(text) {
+                if (!text) return [];
+                
+                const triggeredNpcs = new Set();
+                const lowerText = text.toLowerCase();
+                
+                for (const [npcKey, triggers] of Object.entries(this.NPC_TRIGGERS)) {
+                    for (const trigger of triggers) {
+                        // 大小写不敏感匹配
+                        if (lowerText.includes(trigger.toLowerCase())) {
+                            triggeredNpcs.add(npcKey);
+                            break;
+                        }
+                    }
+                }
+                
+                return Array.from(triggeredNpcs);
+            },
+            
+            // 获取所有 NPC 位置（全图）
+            getAllNpcLocations() {
+                if (!this.mapData || !this.mapData.levels) return [];
+                
+                const npcLocations = [];
+                const gridSize = 16;
+                
+                for (const level of this.mapData.levels) {
+                    if (!level.layerInstances) continue;
+                    
+                    for (const layer of level.layerInstances) {
+                        if (layer.__identifier !== 'NPC_Actor') continue;
+                        if (!layer.entityInstances) continue;
+                        
+                        for (const entity of layer.entityInstances) {
+                            if (entity.__identifier !== 'NPC_Actor') continue;
+                            
+                            const gx = entity.__grid[0];
+                            const gy = entity.__grid[1];
+                            const displayCoords = this.toDisplayCoords(gx, gy);
+                            
+                            let npcId = null;
+                            for (const field of entity.fieldInstances || []) {
+                                if (field.__identifier === 'NPC_Actor') {
+                                    npcId = field.__value;
+                                    break;
+                                }
+                            }
+                            
+                            if (npcId) {
+                                npcLocations.push({
+                                    id: npcId,
+                                    gx, gy,
+                                    displayX: displayCoords.x,
+                                    displayY: displayCoords.y,
+                                    desc: this.npcContext[npcId]?.desc || null,
+                                    name: this.npcContext[npcId]?.name || npcId.replace(/_/g, ' ')
+                                });
+                            }
+                        }
+                    }
+                }
+                
+                return npcLocations;
+            },
+            
+            // 根据触发的 NPC key 获取对应的地图位置
+            getNpcLocationsByTriggers(triggeredNpcKeys) {
+                if (!triggeredNpcKeys || triggeredNpcKeys.length === 0) return [];
+                
+                const allNpcLocations = this.getAllNpcLocations();
+                const matchedLocations = [];
+                
+                for (const npcKey of triggeredNpcKeys) {
+                    const mapIdPrefix = this.NPC_TRIGGER_TO_MAP_ID[npcKey];
+                    if (!mapIdPrefix) continue;
+                    
+                    // 查找所有匹配该 NPC 的位置（NPC ID 以 mapIdPrefix 开头）
+                    for (const loc of allNpcLocations) {
+                        if (loc.id.startsWith(mapIdPrefix + '_') || loc.id === mapIdPrefix) {
+                            matchedLocations.push({
+                                ...loc,
+                                triggerKey: npcKey,
+                                displayName: this.NPC_TRIGGERS[npcKey]?.[0] || mapIdPrefix
+                            });
+                        }
+                    }
+                }
+                
+                return matchedLocations;
             },
             
             // 显示坐标转内部格子坐标（与 game.js 的 toInternalCoords 一致）
@@ -864,6 +1020,43 @@
                     lines.push(`  ${marker} ${data.name} [${data.center[0]}, ${data.center[1]}]`);
                 }
                 
+                // ========== 本大区公共设施 ==========
+                const pokemonCenters = this.getAllPokemonCenters();
+                const policeBoxes = this.getAllPoliceBoxes();
+                
+                // 筛选当前大区的设施
+                const currentRegionCenters = pokemonCenters.filter(c => 
+                    this.getRegionByCoords(c.displayX, c.displayY) === regionId
+                );
+                const currentRegionPolice = policeBoxes.filter(p => 
+                    this.getRegionByCoords(p.displayX, p.displayY) === regionId
+                );
+                
+                if (currentRegionCenters.length > 0 || currentRegionPolice.length > 0) {
+                    lines.push('');
+                    lines.push(`【本大区公共设施】(${regionInfo?.name || regionId})`);
+                    
+                    // 宝可梦中心
+                    if (currentRegionCenters.length > 0) {
+                        lines.push('  ■ 宝可梦中心:');
+                        for (const center of currentRegionCenters) {
+                            const centerInfo = this.mapInfo?.place_anchor?.[center.id];
+                            const name = centerInfo?.name || center.id.replace(/_/g, ' ');
+                            lines.push(`    • ${name} [${center.displayX}, ${center.displayY}]`);
+                        }
+                    }
+                    
+                    // 警察亭
+                    if (currentRegionPolice.length > 0) {
+                        lines.push('  ■ 警察亭:');
+                        for (const box of currentRegionPolice) {
+                            const boxInfo = this.mapInfo?.[box.id];
+                            const name = boxInfo?.name || box.id.replace(/_/g, ' ');
+                            lines.push(`    • ${name} [${box.displayX}, ${box.displayY}]`);
+                        }
+                    }
+                }
+                
                 // ========== 交通系统 ==========
                 const transitStations = this.getAllTransitStations();
                 const seaPorts = this.getAllSeaPorts();
@@ -1099,24 +1292,34 @@
                 return landmarks;
             },
             
-            // 地表类型配置
+            // 地表类型配置（与 mapdata.json Surface 层 intGridValues 对应）
             TERRAIN_CONFIG: {
-                1: { type: 'Pavement' },
-                2: { type: 'Standard_Grass' },
-                3: { type: 'Tall_Grass' },
-                4: { type: 'Water_Shallow' },
-                5: { type: 'Water_Deep' },
-                6: { type: 'Sand' },
-                7: { type: 'Rock' },
-                8: { type: 'Snow' },
-                9: { type: 'Ice' },
-                10: { type: 'Lava' },
-                11: { type: 'Mud' },
-                12: { type: 'Wet_Soil' },
-                13: { type: 'Ash' },
-                14: { type: 'Metal' },
-                15: { type: 'Wood' },
-                16: { type: 'Carpet' }
+                1: { type: 'Deep_Sea' },
+                2: { type: 'High_Grass' },
+                3: { type: 'Waste' },
+                4: { type: 'Pavement' },
+                6: { type: 'Shallow_Sea' },
+                7: { type: 'Fresh_Water' },
+                9: { type: 'Sewage' },
+                10: { type: 'Standard_Grass' },
+                12: { type: 'Flower_Field' },
+                13: { type: 'Deep_Jungle' },
+                14: { type: 'Wet_Soil' },
+                15: { type: 'Coastal_Sand' },
+                16: { type: 'Light_Forest' },
+                17: { type: 'Industrial' },
+                18: { type: 'High_Voltage' },
+                19: { type: 'Synthetic_Turf' },
+                20: { type: 'Swamp' },
+                21: { type: 'Slum_Pavement' },
+                22: { type: 'Withered_Grass' },
+                23: { type: 'Snowfield' },
+                24: { type: 'Glacial_Water' },
+                25: { type: 'Desert_Sand' },
+                26: { type: 'Rocky_Mountain' },
+                27: { type: 'Scorched_Earth' },
+                28: { type: 'Magma' },
+                29: { type: 'Ancient_Timber' }
             },
             
             // 从 mapdata.json 获取 IntGrid 值
@@ -1309,6 +1512,92 @@
                 return airfields;
             },
             
+            // 获取所有宝可梦中心
+            getAllPokemonCenters() {
+                if (!this.mapData || !this.mapData.levels || !this.mapData.levels[0]) return [];
+                
+                const centers = [];
+                const levelData = this.mapData.levels[0];
+                const gridSize = 16;
+                
+                for (const layer of levelData.layerInstances || []) {
+                    if (layer.__type === 'Entities') {
+                        for (const entity of layer.entityInstances || []) {
+                            if (entity.__identifier === 'Pokemon_Centers') {
+                                const worldX = entity.__worldX || entity.px[0];
+                                const worldY = entity.__worldY || entity.px[1];
+                                const gx = Math.floor(worldX / gridSize);
+                                const gy = Math.floor(worldY / gridSize);
+                                
+                                const displayCoords = this.toDisplayCoords(gx, gy);
+                                
+                                let centerId = null;
+                                for (const field of entity.fieldInstances || []) {
+                                    if (field.__identifier === 'Pokemon_Centers') {
+                                        centerId = field.__value;
+                                        break;
+                                    }
+                                }
+                                
+                                if (centerId) {
+                                    centers.push({
+                                        id: centerId,
+                                        gx, gy,
+                                        displayX: displayCoords.x,
+                                        displayY: displayCoords.y
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                return centers;
+            },
+            
+            // 获取所有警察亭
+            getAllPoliceBoxes() {
+                if (!this.mapData || !this.mapData.levels || !this.mapData.levels[0]) return [];
+                
+                const boxes = [];
+                const levelData = this.mapData.levels[0];
+                const gridSize = 16;
+                
+                for (const layer of levelData.layerInstances || []) {
+                    if (layer.__type === 'Entities') {
+                        for (const entity of layer.entityInstances || []) {
+                            if (entity.__identifier === 'Police_Box') {
+                                const worldX = entity.__worldX || entity.px[0];
+                                const worldY = entity.__worldY || entity.px[1];
+                                const gx = Math.floor(worldX / gridSize);
+                                const gy = Math.floor(worldY / gridSize);
+                                
+                                const displayCoords = this.toDisplayCoords(gx, gy);
+                                
+                                let boxId = null;
+                                for (const field of entity.fieldInstances || []) {
+                                    if (field.__identifier === 'Service_Type') {
+                                        boxId = field.__value;
+                                        break;
+                                    }
+                                }
+                                
+                                if (boxId) {
+                                    boxes.push({
+                                        id: boxId,
+                                        gx, gy,
+                                        displayX: displayCoords.x,
+                                        displayY: displayCoords.y
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                return boxes;
+            },
+            
             // 获取周围格子的简要信息
             getSurroundingInfo(gx, gy, radius = 2) {
                 const surrounding = [];
@@ -1449,24 +1738,10 @@
                 return ranges[threat] || ranges[1];
             },
             
-            // 解析区域名称
+            // 解析区域名称（严格映射，无 fallback）
             resolveZoneName(biomeZone, surfaceType) {
-                if (!biomeZone || biomeZone === '' || biomeZone === 'Unknown') {
-                    const waterSurfaces = ['Fresh_Water', 'Shallow_Sea', 'Deep_Sea', 'Glacial_Water', 'Sewage'];
-                    if (waterSurfaces.includes(surfaceType)) {
-                        if (surfaceType === 'Deep_Sea') return 'Equatorial_Dark_Zone';
-                        if (surfaceType === 'Shallow_Sea') return 'Crystal_Lagoon';
-                        if (surfaceType === 'Fresh_Water') return 'Zero_Halo_Moat';
-                        return 'Crystal_Lagoon';
-                    }
-                    return 'Aether_Admin_Zone';
-                }
-                
-                if (this.BIOME_ZONE_MAPPING[biomeZone]) {
-                    return this.BIOME_ZONE_MAPPING[biomeZone];
-                }
-                
-                return biomeZone;
+                // 通过 BIOME_ZONE_MAPPING 映射，否则直接使用 biomeZone
+                return this.BIOME_ZONE_MAPPING[biomeZone] || biomeZone;
             },
             
             // 从池中随机选择一个宝可梦
@@ -1498,27 +1773,29 @@
                 const entities = LocationContextBackend.getEntitiesAtGrid(gx, gy);
                 
                 const threat = gridInfo.threat;
-                const surfaceType = gridInfo.surface || 'Pavement';
-                const biomeZone = entities.biomeZone || 'Unknown';
+                const surfaceType = gridInfo.surface;
+                const biomeZone = entities.biomeZone;
                 
-                // 和平区域无宝可梦
-                if (this.isPeaceZone(threat)) {
+                // 和平区域或无效数据：无宝可梦
+                if (this.isPeaceZone(threat) || !surfaceType || !biomeZone) {
                     return [];
                 }
                 
                 const resolvedZone = this.resolveZoneName(biomeZone, surfaceType);
                 
-                let zoneTable = spawnTablesData[resolvedZone];
+                // 严格匹配：zone 必须存在
+                const zoneTable = spawnTablesData[resolvedZone];
                 if (!zoneTable) {
-                    zoneTable = spawnTablesData['Aether_Admin_Zone'];
+                    console.warn(`[PKM] Zone not found: ${resolvedZone}`);
+                    return [];
                 }
-                if (!zoneTable) return [];
                 
-                let surfacePool = zoneTable[surfaceType];
+                // 严格匹配：surface 必须存在
+                const surfacePool = zoneTable[surfaceType];
                 if (!surfacePool) {
-                    surfacePool = zoneTable['Standard_Grass'] || zoneTable['Pavement'] || Object.values(zoneTable)[0];
+                    console.warn(`[PKM] Surface not found: ${resolvedZone}.${surfaceType}`);
+                    return [];
                 }
-                if (!surfacePool) return [];
                 
                 const count = 4 + Math.floor(Math.random() * 2);
                 const results = [];
@@ -1887,6 +2164,75 @@
                     } else {
                         contextText += '\n' + pokemonLines.join('\n');
                     }
+                }
+                
+                // ========== 扫描聊天记录检测 NPC 触发词 ==========
+                let npcTriggerSection = '';
+                try {
+                    // 使用 getChatMessages 获取最近10条聊天记录（与 pkm-tavern-plugin.js 一致）
+                    const historyDepth = 10;
+                    const allMessages = typeof getChatMessages === 'function' 
+                        ? getChatMessages('0-{{lastMessageId}}') 
+                        : null;
+                    
+                    if (allMessages && allMessages.length > 0) {
+                        // 取最后 N 条
+                        const messages = allMessages.slice(-historyDepth);
+                        
+                        // 过滤掉 ERA 变量标签，避免匹配到 JSON 里的 NPC ID
+                        const textToScan = messages.map(m => {
+                            let text = m.message || m.mes || '';
+                            // 移除 <VariableInsert>、<VariableEdit>、<VariableDelete> 标签及其内容
+                            text = text.replace(/<VariableInsert>[\s\S]*?<\/VariableInsert>/gi, '');
+                            text = text.replace(/<VariableEdit>[\s\S]*?<\/VariableEdit>/gi, '');
+                            text = text.replace(/<VariableDelete>[\s\S]*?<\/VariableDelete>/gi, '');
+                            // 移除 <planning> 标签及其内容
+                            text = text.replace(/<planning>[\s\S]*?<\/planning>/gi, '');
+                            return text;
+                        }).join('\n');
+                        
+                        // 扫描触发词
+                        const triggeredNpcs = LocationContextBackend.scanForNpcTriggers(textToScan);
+                        
+                        if (triggeredNpcs.length > 0) {
+                            // 获取匹配的 NPC 位置
+                            const npcLocations = LocationContextBackend.getNpcLocationsByTriggers(triggeredNpcs);
+                            
+                            if (npcLocations.length > 0) {
+                                const npcLines = ['', '【剧情触发NPC地点】'];
+                                
+                                // 按 NPC 分组显示
+                                const groupedByNpc = {};
+                                for (const loc of npcLocations) {
+                                    if (!groupedByNpc[loc.displayName]) {
+                                        groupedByNpc[loc.displayName] = [];
+                                    }
+                                    groupedByNpc[loc.displayName].push(loc);
+                                }
+                                
+                                for (const [npcName, locations] of Object.entries(groupedByNpc)) {
+                                    npcLines.push(`  ■ ${npcName}:`);
+                                    for (const loc of locations) {
+                                        const region = LocationContextBackend.getRegionByCoords(loc.displayX, loc.displayY);
+                                        const regionInfo = LocationContextBackend.REGIONS[region];
+                                        const regionShort = regionInfo?.short || '?';
+                                        const placeName = loc.name || loc.id.replace(/_/g, ' ');
+                                        npcLines.push(`    • ${placeName} [${loc.displayX}, ${loc.displayY}] (${regionShort}区)`);
+                                    }
+                                }
+                                
+                                npcTriggerSection = npcLines.join('\n');
+                                console.log(`[PKM] 检测到 NPC 触发词: ${triggeredNpcs.join(', ')}`);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[PKM] NPC 触发词扫描失败:', e);
+                }
+                
+                // 将 NPC 触发区块添加到上下文末尾
+                if (npcTriggerSection) {
+                    contextText += npcTriggerSection;
                 }
                 
                 const promptContent = `<location_context>

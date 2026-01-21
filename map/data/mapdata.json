@@ -6373,7 +6373,7 @@
             "layerDefUid": 52,
             "pxOffsetX": 0,
             "pxOffsetY": 0,
-            "visible": false,
+            "visible": true,
             "optionalRules": [],
             "intGridCsv": [],
             "autoLayerTiles": [],
@@ -11239,7 +11239,7 @@
                 "__smartColor": "#D1CCC0",
                 "iid": "2eeb64c0-d380-11f0-a538-7776593b0bdb",
                 "width": 16,
-                "height": 112,
+                "height": 128,
                 "defUid": 49,
                 "px": [80, 448],
                 "fieldInstances": [{
