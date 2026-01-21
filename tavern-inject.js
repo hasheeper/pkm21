@@ -374,6 +374,9 @@
                     // 加载 pkmdata.js（通过动态 script）
                     await this.loadPkmData();
                     
+                    // 加载 pokedex-data.js（用于进化逻辑）
+                    await this.loadPokedexData();
+                    
                     this.dataLoaded = true;
                     console.log('[PKM] ✓ 所有地图数据加载完成');
                     return true;
@@ -401,6 +404,29 @@
                     };
                     script.onerror = () => {
                         console.warn('[PKM] pkmdata.js 加载失败');
+                        resolve();
+                    };
+                    document.head.appendChild(script);
+                });
+            },
+            
+            // 加载 pokedex-data.js（用于进化逻辑）
+            async loadPokedexData() {
+                return new Promise((resolve) => {
+                    if (window.POKEDEX) {
+                        console.log('[PKM] ✓ POKEDEX 已存在');
+                        resolve();
+                        return;
+                    }
+                    
+                    const script = document.createElement('script');
+                    script.src = PKM_URL + 'map/data/pokedex-data.js';
+                    script.onload = () => {
+                        console.log('[PKM] ✓ pokedex-data.js 已加载');
+                        resolve();
+                    };
+                    script.onerror = () => {
+                        console.warn('[PKM] pokedex-data.js 加载失败，进化逻辑将不可用');
                         resolve();
                     };
                     document.head.appendChild(script);
