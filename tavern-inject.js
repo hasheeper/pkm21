@@ -1776,6 +1776,15 @@
                 return pokemonId;
             },
             
+            // 进化型宝可梦最低等级表（保险机制：确保进化型不会出现低于进化门槛的等级）
+            EVOLVED_MIN_LEVEL: {"ivysaur":16,"venusaur":32,"charmeleon":16,"charizard":36,"wartortle":16,"blastoise":36,"metapod":7,"butterfree":10,"kakuna":7,"beedrill":10,"pidgeotto":18,"pidgeot":36,"raticate":20,"raticatealola":20,"fearow":20,"arbok":22,"sandslash":22,"nidorina":16,"nidorino":16,"golbat":22,"gloom":21,"parasect":24,"venomoth":31,"dugtrio":26,"dugtrioalola":26,"persian":28,"perrserker":28,"golduck":33,"primeape":28,"poliwhirl":25,"kadabra":16,"machoke":28,"weepinbell":21,"tentacruel":30,"graveler":25,"graveleralola":25,"rapidash":40,"rapidashgalar":40,"slowbro":37,"magneton":30,"dodrio":31,"dewgong":34,"muk":38,"mukalola":38,"haunter":25,"hypno":26,"kingler":28,"electrode":30,"marowak":28,"marowakalola":28,"weezing":35,"weezinggalar":35,"rhydon":42,"seadra":32,"seaking":33,"mrrime":42,"gyarados":20,"omastar":40,"kabutops":40,"dragonair":30,"dragonite":55,"bayleef":16,"meganium":32,"quilava":14,"typhlosion":36,"typhlosionhisui":36,"croconaw":18,"feraligatr":30,"furret":15,"noctowl":20,"ledian":18,"ariados":22,"lanturn":27,"xatu":25,"flaaffy":15,"ampharos":30,"azumarill":18,"skiploom":18,"jumpluff":27,"quagsire":20,"clodsire":20,"forretress":31,"granbull":23,"ursaring":30,"magcargo":38,"piloswine":33,"cursola":38,"octillery":25,"houndoom":24,"donphan":25,"hitmonlee":20,"hitmonchan":20,"hitmontop":20,"jynx":30,"electabuzz":30,"magmar":30,"pupitar":30,"tyranitar":55,"grovyle":16,"sceptile":36,"combusken":16,"blaziken":36,"marshtomp":16,"swampert":36,"mightyena":18,"linoone":20,"linoonegalar":20,"obstagoon":35,"silcoon":7,"cascoon":7,"beautifly":10,"dustox":10,"lombre":14,"nuzleaf":14,"swellow":22,"pelipper":25,"kirlia":20,"gardevoir":30,"masquerain":22,"breloom":23,"vigoroth":18,"slaking":36,"ninjask":20,"shedinja":20,"loudred":20,"exploud":40,"hariyama":24,"lairon":32,"aggron":42,"medicham":37,"manectric":26,"swalot":26,"sharpedo":30,"wailord":40,"camerupt":33,"grumpig":32,"vibrava":35,"flygon":45,"cacturne":32,"altaria":35,"whiscash":30,"crawdaunt":30,"claydol":36,"cradily":40,"armaldo":40,"banette":37,"dusclops":37,"wobbuffet":15,"glalie":42,"sealeo":32,"walrein":44,"shelgon":30,"salamence":50,"metang":20,"metagross":45,"grotle":18,"torterra":32,"monferno":14,"infernape":36,"prinplup":16,"empoleon":36,"staravia":14,"staraptor":34,"bibarel":15,"kricketune":10,"luxio":15,"luxray":30,"rampardos":30,"bastiodon":30,"wormadam":20,"wormadamsandy":20,"wormadamtrash":20,"mothim":20,"vespiquen":21,"floatzel":26,"cherrim":25,"gastrodon":30,"drifblim":28,"purugly":38,"skuntank":34,"bronzong":33,"gabite":24,"garchomp":48,"hippowdon":34,"drapion":40,"toxicroak":37,"lumineon":31,"abomasnow":40,"servine":17,"serperior":36,"pignite":17,"emboar":36,"dewott":17,"samurott":36,"samurotthisui":36,"watchog":20,"herdier":16,"stoutland":32,"liepard":20,"tranquill":21,"unfezant":32,"zebstrika":27,"boldore":25,"excadrill":31,"gurdurr":25,"palpitoad":25,"seismitoad":36,"swadloon":20,"whirlipede":22,"scolipede":30,"krokorok":29,"krookodile":40,"darmanitan":35,"crustle":34,"scrafty":39,"cofagrigus":34,"carracosta":37,"archeops":37,"garbodor":36,"zoroark":30,"zoroarkhisui":30,"gothorita":32,"gothitelle":41,"duosion":32,"reuniclus":41,"swanna":35,"vanillish":35,"vanilluxe":47,"sawsbuck":34,"amoonguss":39,"jellicent":40,"galvantula":36,"ferrothorn":40,"klang":38,"klinklang":49,"eelektrik":39,"beheeyem":42,"lampent":41,"fraxure":38,"haxorus":48,"beartic":37,"mienshao":50,"golurk":43,"bisharp":52,"braviary":54,"braviaryhisui":54,"mandibuzz":54,"zweilous":50,"hydreigon":64,"volcarona":59,"quilladin":16,"chesnaught":36,"braixen":16,"delphox":36,"frogadier":16,"greninja":36,"diggersby":20,"fletchinder":17,"talonflame":35,"spewpa":9,"vivillon":12,"vivillonfancy":12,"pyroar":35,"floette":19,"gogoat":32,"pangoro":32,"meowstic":25,"meowsticf":25,"doublade":35,"malamar":30,"barbaracle":39,"dragalge":48,"clawitzer":37,"tyrantrum":39,"aurorus":39,"sliggoo":40,"sliggoohisui":40,"goodra":50,"goodrahisui":50,"avalugg":37,"avalugghisui":37,"noivern":48,"dartrix":17,"decidueye":34,"decidueyehisui":36,"torracat":17,"incineroar":34,"brionne":17,"primarina":34,"trumbeak":14,"toucannon":28,"gumshoos":20,"charjabug":20,"ribombee":25,"lycanroc":25,"lycanrocmidnight":25,"lycanrocdusk":25,"toxapex":38,"mudsdale":30,"araquanid":22,"lurantis":34,"shiinotic":24,"salazzle":33,"bewear":27,"steenee":18,"golisopod":30,"palossand":42,"hakamoo":35,"kommoo":45,"cosmoem":43,"solgaleo":53,"lunala":53,"thwackey":16,"rillaboom":35,"raboot":16,"cinderace":35,"drizzile":16,"inteleon":35,"greedent":24,"corvisquire":18,"corviknight":38,"dottler":10,"orbeetle":30,"thievul":18,"eldegoss":20,"dubwool":24,"drednaw":22,"boltund":25,"carkol":18,"coalossal":34,"sandaconda":36,"barraskewda":26,"toxtricity":30,"toxtricitylowkey":30,"centiskorch":28,"hattrem":32,"hatterene":42,"morgrem":32,"grimmsnarl":42,"copperajah":34,"drakloak":50,"dragapult":60,"floragato":16,"meowscarada":36,"crocalor":16,"skeledirge":36,"quaxwell":16,"quaquaval":36,"oinkologne":18,"oinkolognef":18,"spidops":15,"lokix":24,"pawmo":18,"maushold":25,"mausholdfour":25,"dachsbun":26,"dolliv":25,"arboliva":35,"naclstack":24,"garganacl":38,"kilowattrel":25,"mabosstiff":30,"grafaiai":28,"toedscruel":30,"espathra":35,"tinkatuff":24,"tinkaton":38,"wugtrio":26,"palafin":38,"revavroom":40,"glimmora":35,"houndstone":30,"arctibax":35,"baxcalibur":54,"syclant":30,"flarelm":24,"pyroak":38,"fidgit":33,"tactite":28,"arghonaut":37,"voodoom":32,"tomohawk":23,"necturna":31,"argalis":30,"aurumoth":50,"malaconda":33,"cawmodore":33,"volkraken":34,"plasmanta":29,"caimanoe":21,"naviathan":40,"electrelk":17,"caribolt":34,"smoguana":15,"smokomodo":36,"coribalis":17,"snaelstrom":34,"equilibra":32,"astrolotl":35,"miasmaw":30,"duohm":32,"cyclohm":43,"colossoil":39,"krilowatt":15,"draggalong":36,"chuggalong":46},
+            
+            // 获取进化型宝可梦的最低等级（保险机制）
+            getEvolvedMinLevel(pokemonId) {
+                const normalizedId = pokemonId.toLowerCase().replace(/[^a-z0-9]/g, '');
+                return this.EVOLVED_MIN_LEVEL[normalizedId] || 0;
+            },
+            
             // 从池中随机选择一个宝可梦
             pickFromPool(pool, levelRange, rarity = null) {
                 if (!pool || pool.length === 0) return null;
@@ -1783,16 +1792,23 @@
                 const idx = Math.floor(Math.random() * pool.length);
                 const entry = pool[idx];
                 
-                let pokemonId, minLevel;
+                let pokemonId, configMin;
                 if (typeof entry === 'string') {
                     pokemonId = entry;
-                    minLevel = levelRange.min;
+                    configMin = null; // 配置文件未指定 min
                 } else {
                     pokemonId = entry.id;
-                    minLevel = entry.min || levelRange.min;
+                    configMin = entry.min || null;
                 }
                 
-                const effectiveMin = Math.max(minLevel, levelRange.min);
+                // 保险机制：获取进化型宝可梦的最低等级门槛
+                const evolvedMin = this.getEvolvedMinLevel(pokemonId);
+                
+                // 优先级：配置文件 min > 进化门槛保险 > 区域等级范围
+                const effectiveMin = Math.max(
+                    configMin || levelRange.min,  // 配置 min 优先，否则用区域 min
+                    evolvedMin                     // 进化门槛保险
+                );
                 const effectiveMax = Math.max(levelRange.max, effectiveMin);
                 let level = Math.floor(Math.random() * (effectiveMax - effectiveMin + 1)) + effectiveMin;
                 
