@@ -4416,6 +4416,7 @@ window.SPAWN_TABLES_DATA = {
       ],
 
       rare: [
+        "popplio",
         "cloyster",
         "lapras",
         "vaporeon",
