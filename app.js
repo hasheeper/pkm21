@@ -736,41 +736,6 @@ window.addEventListener('message', function(event) {
         if (mapIframe && mapIframe.contentWindow) {
             mapIframe.contentWindow.postMessage({ type: 'MAP_RESIZE' }, '*');
         }
-    } else if (event.data.type === 'PKM_FULLSCREEN_MODE') {
-        // 收到全屏模式切换消息，让整个手机容器和 MAP 都全屏
-        const isFullscreen = event.data.fullscreen;
-        console.log('[PKM] 收到全屏模式切换:', isFullscreen);
-        
-        const container = document.querySelector('.ver-dawn-frame');
-        const modal = document.getElementById('map-modal');
-        
-        if (isFullscreen) {
-            // 让手机容器全屏
-            if (container) {
-                container.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;max-width:none;max-height:none;border-radius:0;z-index:99999;';
-            }
-            if (modal) {
-                modal.classList.add('fullscreen');
-            }
-            document.body.classList.add('map-fullscreen-active');
-        } else {
-            // 恢复手机容器原始样式
-            if (container) {
-                container.style.cssText = '';
-            }
-            if (modal) {
-                modal.classList.remove('fullscreen');
-            }
-            document.body.classList.remove('map-fullscreen-active');
-        }
-        
-        // 转发给 map iframe 调整 canvas 大小
-        const mapIframe = document.getElementById('map-iframe');
-        if (mapIframe && mapIframe.contentWindow) {
-            setTimeout(() => {
-                mapIframe.contentWindow.postMessage({ type: 'MAP_RESIZE' }, '*');
-            }, 100);
-        }
     }
 });
 
@@ -2652,7 +2617,54 @@ window.closeMapSystem = function() {
     const modal = document.getElementById('map-modal');
     if (modal) {
         modal.classList.remove('active');
+        modal.classList.remove('fullscreen');
+        document.body.classList.remove('map-fullscreen-active');
     }
+};
+
+// 切换 MAP 全屏模式
+window.toggleMapFullscreen = function() {
+    const modal = document.getElementById('map-modal');
+    if (!modal) return;
+    
+    const isFullscreen = modal.classList.toggle('fullscreen');
+    document.body.classList.toggle('map-fullscreen-active', isFullscreen);
+    
+    // 更新按钮图标
+    const btn = modal.querySelector('.map-modal-fullscreen');
+    if (btn) {
+        btn.textContent = isFullscreen ? '⛶' : '⛶';
+        btn.title = isFullscreen ? '退出全屏' : '全屏';
+    }
+    
+    // 通知父级窗口调整 PKM 容器大小（用于 tavern-inject.js）
+    // 与 script.js 中 PKM_SET_LEADER 发送方式一致
+    const message = {
+        type: 'PKM_MAP_FULLSCREEN',
+        fullscreen: isFullscreen
+    };
+    try {
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage(message, '*');
+            console.log('[PKM] ✓ 已发送全屏消息到 parent');
+        }
+        if (window.top && window.top !== window && window.top !== window.parent) {
+            window.top.postMessage(message, '*');
+            console.log('[PKM] ✓ 已发送全屏消息到 top');
+        }
+    } catch (e) {
+        console.error('[PKM] postMessage 发送失败:', e);
+    }
+    
+    // 通知 map iframe 调整大小
+    const iframe = document.getElementById('map-iframe');
+    if (iframe && iframe.contentWindow) {
+        setTimeout(() => {
+            iframe.contentWindow.postMessage({ type: 'MAP_RESIZE' }, '*');
+        }, 100);
+    }
+    
+    console.log('[PKM] MAP 全屏模式:', isFullscreen ? '开启' : '关闭');
 };
 
 // 设置 MAP iframe 的回调
