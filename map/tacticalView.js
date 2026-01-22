@@ -758,7 +758,8 @@ const TacticalSystem = {
     drawEntityLayer: function(ctx, range, S) {
         if(!window.levelData) return;
 
-        const VALID_LAYERS = ["NPC_Actor", "Service", "PlayerStart", "Core_Logic", "Place_Anchor"];
+        const VALID_LAYERS = ["NPC_Actor", "Service", "PlayerStart", "Core_Logic", "Place_Anchor", "Ultra_Wormhole", "Paradox_Anchors"];
+        const PHENOMENON_LAYERS = ["Ultra_Wormhole", "Paradox_Anchors"];
         const minGx = this.anchor.x - range, maxGx = this.anchor.x + range;
         const minGy = this.anchor.y - range, maxGy = this.anchor.y + range;
 
@@ -770,6 +771,19 @@ const TacticalSystem = {
             layer.entityInstances.forEach(ent => {
                 const gx = ent.__grid[0], gy = ent.__grid[1];
                 if(gx >= minGx && gx <= maxGx && gy >= minGy && gy <= maxGy) {
+                    // 对于异变图层，检查是否应该显示
+                    if(PHENOMENON_LAYERS.includes(layer.__identifier)) {
+                        const entityValue = ent.fieldInstances?.[0]?.__value;
+                        if(!entityValue) return;
+                        if(typeof window.shouldShowPhenomenonEntity === 'function') {
+                            if(!window.shouldShowPhenomenonEntity(layer.__identifier, entityValue)) {
+                                return; // 不显示此实体
+                            }
+                        } else {
+                            return; // 函数不存在时默认不显示
+                        }
+                    }
+                    
                     const key = `${gx},${gy}`;
                     if(!gridBuckets[key]) gridBuckets[key] = [];
                     gridBuckets[key].push({ ent, type: layer.__identifier });
@@ -805,9 +819,137 @@ const TacticalSystem = {
     _drawGlassBadge: function(ctx, x, y, ent, layerName) {
         if(layerName === "NPC_Actor") {
             this._drawNPCBadge(ctx, x, y, ent);
+        } else if(layerName === "Ultra_Wormhole" || layerName === "Paradox_Anchors") {
+            this._drawPhenomenonBadge(ctx, x, y, ent, layerName);
         } else {
             this._drawStandardBadge(ctx, x, y, ent, layerName);
         }
+    },
+    
+    _drawPhenomenonBadge: function(ctx, x, y, ent, layerName) {
+        const entityValue = ent.fieldInstances?.[0]?.__value || ent.__identifier;
+        const state = window.phenomenonState || { active_type: "clear" };
+        
+        // 获取配置
+        let config = null;
+        let displayName = entityValue.replace(/_/g, ' ');
+        let pokemonId = null;
+        let badgeColor = "#9C27B0"; // 默认紫色
+        let iconType = "wormhole"; // wormhole, pool, boss
+        
+        if(layerName === "Ultra_Wormhole") {
+            config = window.ULTRA_BEAST_MAP?.[entityValue];
+            if(config) {
+                pokemonId = config.pokemon?.id;
+                badgeColor = config.color || "#9C27B0";
+                displayName = pokemonId ? pokemonId.replace(/-/g, ' ') : displayName;
+            }
+            iconType = "wormhole";
+        } else if(layerName === "Paradox_Anchors") {
+            if(entityValue.startsWith("Pool_")) {
+                config = window.PARADOX_SPAWN_POOLS?.[entityValue];
+                iconType = "pool";
+            } else {
+                config = window.STATIC_BOSS_MAP?.[entityValue];
+                iconType = "boss";
+                if(config) {
+                    pokemonId = config.pokemon?.id;
+                    displayName = pokemonId ? pokemonId.replace(/-/g, ' ') : displayName;
+                }
+            }
+            if(config) {
+                badgeColor = config.color || (config.type === "ancient" ? "#795548" : "#2196F3");
+            }
+        }
+        
+        // 绘制徽章
+        ctx.save();
+        
+        const badgeW = 120;
+        const badgeH = 36;
+        const bx = x - badgeW / 2;
+        const by = y - badgeH - 10;
+        
+        // 脉冲动画
+        const pulse = Math.sin(Date.now() / 300) * 0.15 + 0.85;
+        
+        // 连接线
+        ctx.strokeStyle = badgeColor;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.6;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(x, by + badgeH);
+        ctx.lineTo(x, y - 6);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+        
+        // 地面标记点（脉冲效果）
+        ctx.fillStyle = badgeColor;
+        ctx.globalAlpha = pulse;
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        ctx.arc(x, y, 10 * pulse, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        
+        // 徽章背景
+        ctx.shadowColor = badgeColor;
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = "rgba(20, 20, 30, 0.95)";
+        ctx.beginPath();
+        if(ctx.roundRect) ctx.roundRect(bx, by, badgeW, badgeH, 6);
+        else ctx.rect(bx, by, badgeW, badgeH);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        // 左侧图标区
+        const iconSize = 28;
+        const iconX = bx + 4;
+        const iconY = by + (badgeH - iconSize) / 2;
+        
+        ctx.fillStyle = badgeColor;
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        if(ctx.roundRect) ctx.roundRect(iconX, iconY, iconSize, iconSize, 4);
+        else ctx.rect(iconX, iconY, iconSize, iconSize);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        
+        // 图标符号
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = "bold 16px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        const iconCx = iconX + iconSize / 2;
+        const iconCy = iconY + iconSize / 2;
+        if(iconType === "wormhole") {
+            ctx.fillText("◉", iconCx, iconCy);
+        } else if(iconType === "boss") {
+            ctx.fillText("★", iconCx, iconCy);
+        } else {
+            ctx.fillText("◈", iconCx, iconCy);
+        }
+        
+        // 类型标签
+        ctx.fillStyle = badgeColor;
+        ctx.font = "bold 8px sans-serif";
+        ctx.textAlign = "left";
+        const typeLabel = state.active_type === "ultra" ? "ULTRA" : 
+                         state.active_type === "ancient" ? "ANCIENT" : "FUTURE";
+        ctx.fillText(typeLabel, bx + 36, by + 10);
+        
+        // 名称
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = "bold 11px sans-serif";
+        let shortName = displayName.length > 12 ? displayName.substr(0, 11) + ".." : displayName;
+        ctx.fillText(shortName.toUpperCase(), bx + 36, by + 24);
+        
+        ctx.restore();
     },
 
     _drawNPCBadge: function(ctx, x, y, ent) {
