@@ -589,7 +589,10 @@ function renderLoop() {
     const entLayers = levelData.layerInstances.filter(l => l.__type === "Entities" && !MERGE_REGEX.test(l.__identifier));
     entLayers.forEach(layer => {
         if(layerVisibility[layer.__identifier] === false) return;
-        layer.entityInstances.forEach(drawModernPin);
+        layer.entityInstances.forEach(ent => {
+            ent._layerName = layer.__identifier; // 添加图层名称供渲染使用
+            drawModernPin(ent);
+        });
     });
     
     // 渲染区域图层 (Biome_Zone, Region_Zone)
@@ -977,11 +980,25 @@ function drawInfrastructure() {
     ctx.restore();
 }
 
+// 异变实体主题颜色（大地图用）
+const PHENOMENON_MAP_COLORS = {
+    ancient: "#B71C1C",  // 古代种：深红
+    future: "#00BCD4",   // 未来种：电子蓝
+    ultra: "#6A1B9A"     // 究极异兽：深紫
+};
+
 function drawModernPin(ent) {
     if(ent._groupIdRef) return;
 
     const x = ent.px[0];
     const y = ent.px[1];
+    const layerName = ent._layerName || "";
+    
+    // 检查是否为异变实体
+    if(layerName === "Ultra_Wormhole" || layerName === "Paradox_Anchors") {
+        drawPhenomenonPin(ent, x, y, layerName);
+        return;
+    }
 
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,0.3)";
@@ -1014,6 +1031,107 @@ function drawModernPin(ent) {
         ctx.stroke();
     }
     ctx.restore();
+}
+
+// 绘制异变实体图标（大地图）
+function drawPhenomenonPin(ent, x, y, layerName) {
+    const entityValue = ent.fieldInstances?.[0]?.__value || ent.__identifier;
+    
+    // 判断类型和颜色
+    let phenomenonType = "ancient";
+    let isBoss = false;
+    
+    if(layerName === "Ultra_Wormhole") {
+        phenomenonType = "ultra";
+    } else if(layerName === "Paradox_Anchors") {
+        if(entityValue.startsWith("Pool_")) {
+            phenomenonType = entityValue.includes("Ancient") ? "ancient" : "future";
+        } else {
+            isBoss = true;
+            phenomenonType = (entityValue.includes("Anc") || entityValue.includes("Ancient")) ? "ancient" : 
+                            (entityValue.includes("Fut") || entityValue.includes("Iron")) ? "future" : "ancient";
+        }
+    }
+    
+    const color = PHENOMENON_MAP_COLORS[phenomenonType] || PHENOMENON_MAP_COLORS.ancient;
+    const pulse = Math.sin(Date.now() / 400) * 0.3 + 0.7;
+    
+    ctx.save();
+    
+    // 阴影
+    ctx.fillStyle = "rgba(0,0,0,0.4)";
+    ctx.beginPath();
+    ctx.ellipse(x+8, y+16, 6, 2, 0, 0, Math.PI*2);
+    ctx.fill();
+    
+    // 脉冲光环
+    ctx.globalAlpha = pulse * 0.4;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x+8, y+6, 10 * pulse, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    
+    // 浮动效果
+    const floatY = -Math.sin(Date.now()/300) * 3;
+    ctx.translate(0, floatY);
+    
+    if(layerName === "Ultra_Wormhole") {
+        // 究极之洞：圆形漩涡
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x+8, y+6, 6, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.6;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        // 内圈
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(x+8, y+6, 3, 0, Math.PI*2);
+        ctx.fill();
+    } else if(isBoss) {
+        // Boss：星形
+        ctx.fillStyle = color;
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 1.5;
+        drawStar(ctx, x+8, y+6, 5, 8, 4);
+        ctx.fill();
+        ctx.stroke();
+    } else {
+        // Pool：菱形
+        ctx.fillStyle = color;
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x+8, y);
+        ctx.lineTo(x+14, y+6);
+        ctx.lineTo(x+8, y+12);
+        ctx.lineTo(x+2, y+6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
+    
+    ctx.restore();
+}
+
+// 绘制星形
+function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius) {
+    let rot = Math.PI / 2 * 3;
+    let step = Math.PI / spikes;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - outerRadius);
+    for(let i = 0; i < spikes; i++) {
+        ctx.lineTo(cx + Math.cos(rot) * outerRadius, cy + Math.sin(rot) * outerRadius);
+        rot += step;
+        ctx.lineTo(cx + Math.cos(rot) * innerRadius, cy + Math.sin(rot) * innerRadius);
+        rot += step;
+    }
+    ctx.lineTo(cx, cy - outerRadius);
+    ctx.closePath();
 }
 
 function drawFocusBox() {

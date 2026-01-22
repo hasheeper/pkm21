@@ -2637,14 +2637,24 @@ ${contextText}
                     await LocationContextBackend.loadData();
                     
                     // 获取当前位置
-                    const eraVars = await getEraVars();
+                    let eraVars = await getEraVars();
                     const location = eraVars?.world_state?.location;
                     if (!location || typeof location.x !== 'number') {
                         console.warn('[PKM] [POKEMON] 无位置数据，跳过刷新');
                         return;
                     }
                     
-                    // 生成新的宝可梦数据（强制刷新）
+                    // 更新 lastGameDay
+                    const newDay = detail?.newDay || eraVars?.world_state?.time?.day;
+                    lastGameDay = newDay;
+                    
+                    // ★ 先更新异变状态（基于新的天数），确保刷新宝可梦时能读取到正确的 phenomenon
+                    await updatePhenomenonByDay(newDay);
+                    
+                    // 重新获取 ERA 变量（包含更新后的 phenomenon 状态）
+                    eraVars = await getEraVars();
+                    
+                    // 生成新的宝可梦数据（强制刷新，此时 phenomenon 已更新）
                     const newSpawns = await PokemonSpawnSystem.generateForNearbyGrids(
                         location.x, 
                         location.y, 
@@ -2654,12 +2664,6 @@ ${contextText}
                     
                     // 执行刷新（删除+插入）
                     await eraRefreshPokemonSpawns(newSpawns);
-                    
-                    // 更新 lastGameDay
-                    lastGameDay = detail?.newDay || eraVars?.world_state?.time?.day;
-                    
-                    // 更新异变状态（基于新的天数）
-                    await updatePhenomenonByDay(detail?.newDay || lastGameDay);
                     
                     console.log('[PKM] [POKEMON] ✓ 刷新完成');
                 } catch (e) {

@@ -826,6 +826,13 @@ const TacticalSystem = {
         }
     },
     
+    // 异变实体主题颜色
+    PHENOMENON_COLORS: {
+        ancient: "#B71C1C",      // 古代种：深红 (Crimson)
+        future: "#00BCD4",       // 未来种：电子蓝 (Cyber Blue)
+        ultra: "#6A1B9A"         // 究极异兽：深紫 (Deep Purple)
+    },
+    
     _drawPhenomenonBadge: function(ctx, x, y, ent, layerName) {
         const entityValue = ent.fieldInstances?.[0]?.__value || ent.__identifier;
         const state = window.phenomenonState || { active_type: "clear" };
@@ -834,14 +841,14 @@ const TacticalSystem = {
         let config = null;
         let displayName = entityValue.replace(/_/g, ' ');
         let pokemonId = null;
-        let badgeColor = "#9C27B0"; // 默认紫色
+        let phenomenonType = "ancient"; // ancient, future, ultra
         let iconType = "wormhole"; // wormhole, pool, boss
         
         if(layerName === "Ultra_Wormhole") {
             config = window.ULTRA_BEAST_MAP?.[entityValue];
+            phenomenonType = "ultra";
             if(config) {
                 pokemonId = config.pokemon?.id;
-                badgeColor = config.color || "#9C27B0";
                 displayName = pokemonId ? pokemonId.replace(/-/g, ' ') : displayName;
             }
             iconType = "wormhole";
@@ -849,18 +856,24 @@ const TacticalSystem = {
             if(entityValue.startsWith("Pool_")) {
                 config = window.PARADOX_SPAWN_POOLS?.[entityValue];
                 iconType = "pool";
+                // 从实体名称判断类型
+                phenomenonType = entityValue.includes("Ancient") ? "ancient" : "future";
             } else {
                 config = window.STATIC_BOSS_MAP?.[entityValue];
                 iconType = "boss";
                 if(config) {
                     pokemonId = config.pokemon?.id;
                     displayName = pokemonId ? pokemonId.replace(/-/g, ' ') : displayName;
+                    phenomenonType = config.type || "ancient";
+                } else {
+                    // 从实体名称判断类型
+                    phenomenonType = (entityValue.includes("Anc") || entityValue.includes("Ancient")) ? "ancient" : "future";
                 }
             }
-            if(config) {
-                badgeColor = config.color || (config.type === "ancient" ? "#795548" : "#2196F3");
-            }
         }
+        
+        // 使用主题颜色
+        const badgeColor = this.PHENOMENON_COLORS[phenomenonType] || this.PHENOMENON_COLORS.ancient;
         
         // 绘制徽章
         ctx.save();
@@ -935,12 +948,12 @@ const TacticalSystem = {
             ctx.fillText("◈", iconCx, iconCy);
         }
         
-        // 类型标签
+        // 类型标签（使用实体本身的类型）
         ctx.fillStyle = badgeColor;
         ctx.font = "bold 8px sans-serif";
         ctx.textAlign = "left";
-        const typeLabel = state.active_type === "ultra" ? "ULTRA" : 
-                         state.active_type === "ancient" ? "ANCIENT" : "FUTURE";
+        const typeLabel = phenomenonType === "ultra" ? "ULTRA BEAST" : 
+                         phenomenonType === "ancient" ? "ANCIENT" : "FUTURE";
         ctx.fillText(typeLabel, bx + 36, by + 10);
         
         // 名称
