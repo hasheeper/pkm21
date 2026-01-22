@@ -5333,3 +5333,239 @@ window.SPAWN_TABLES_DATA = {
     },
   },
 };
+
+// ============================================================
+// 异变核心系统配置 (Phenomenon System)
+// ============================================================
+
+/**
+ * 悖谬锚点刷怪池 (Paradox Anchors - 范围刷新)
+ * 对应 mapdata.json 中的 Paradox_Anchors 实体
+ * 刷新规则：中心点 3 格距离内，每格 10% 概率
+ */
+window.PARADOX_SPAWN_POOLS = {
+  // 古代种 (Ancient)
+  Pool_Ancient_Sun: {
+    type: "ancient",
+    pokemon: [
+      { id: "brutebonnet", min: 55 },   // 猛恶菇 #986
+      { id: "slitherwing", min: 55 }    // 爬地翅 #988
+    ],
+    color: "#4CAF50"
+  },
+  Pool_Ancient_Moon: {
+    type: "ancient",
+    pokemon: [
+      { id: "screamtail", min: 55 },    // 吼叫尾 #985
+      { id: "fluttermane", min: 55 }    // 振翼发 #987
+    ],
+    color: "#E91E63"
+  },
+  Pool_Ancient_Earth: {
+    type: "ancient",
+    pokemon: [
+      { id: "greattusk", min: 55 },     // 雄伟牙 #984
+      { id: "sandyshocks", min: 55 }    // 沙铁皮 #989
+    ],
+    color: "#795548"
+  },
+  // 未来种 (Future)
+  Pool_Future_Drive: {
+    type: "future",
+    pokemon: [
+      { id: "ironhands", min: 55 },     // 铁臂膀 #992
+      { id: "irontreads", min: 55 }     // 铁轮迹 #990
+    ],
+    color: "#FFEB3B"
+  },
+  Pool_Future_Sky: {
+    type: "future",
+    pokemon: [
+      { id: "ironmoth", min: 55 },      // 铁毒蛾 #994
+      { id: "ironjugulis", min: 55 }    // 铁脖颈 #993
+    ],
+    color: "#2196F3"
+  },
+  Pool_Future_Code: {
+    type: "future",
+    pokemon: [
+      { id: "ironbundle", min: 55 },    // 铁包袱 #991
+      { id: "ironthorns", min: 55 }     // 铁荆棘 #995
+    ],
+    color: "#00BCD4"
+  }
+};
+
+/**
+ * 单点 Boss 映射 (Static Boss - 100% 刷新)
+ * 对应 mapdata.json 中的 Paradox_Anchors 实体 (Elite_* 和 Boss_* 类型)
+ */
+window.STATIC_BOSS_MAP = {
+  // Apex Boss (极稀有)
+  Boss_Anc_Apex: {
+    type: "ancient",
+    pokemon: { id: "roaringmoon", min: 72 },  // 轰鸣月 #1005
+    color: "#B71C1C",
+    condition: "dungeon_clear"  // 地下城最终怪
+  },
+  Boss_Fut_Apex: {
+    type: "future",
+    pokemon: { id: "ironvaliant", min: 72 },  // 铁武者 #1006
+    color: "#4A148C",
+    condition: "black_market_clear"  // 黑产街最终怪
+  },
+  // Event Boss (事件触发)
+  Elite_Walking_Wake: {
+    type: "ancient",
+    pokemon: { id: "walkingwake", min: 68 },  // 波荡水 #1009
+    color: "#0D47A1",
+    condition: "weather_rain"  // 暴雨/湖中
+  },
+  Elite_Raging_Bolt: {
+    type: "ancient",
+    pokemon: { id: "ragingbolt", min: 68 },   // 猛雷鼓 #1021
+    color: "#F57F17",
+    condition: "weather_thunder"  // 雷暴/塔顶
+  },
+  Elite_Gouging_Fire: {
+    type: "ancient",
+    pokemon: { id: "gougingfire", min: 68 },  // 破空焰 #1020
+    color: "#BF360C",
+    condition: "weather_sun"  // 日照/火山
+  },
+  Elite_Iron_Leavs: {
+    type: "future",
+    pokemon: { id: "ironleaves", min: 68 },   // 铁斑叶 #1010
+    color: "#1B5E20",
+    condition: "electric_terrain"  // 电场/林中
+  },
+  Elite_Iron_Boulder: {
+    type: "future",
+    pokemon: { id: "ironboulder", min: 68 },  // 铁磐岩 #1022
+    color: "#607D8B",
+    condition: "rock_smash"  // 击碎岩石/废墟
+  },
+  Elite_Iron_Crown: {
+    type: "future",
+    pokemon: { id: "ironcrown", min: 68 },    // 铁头壳 #1023
+    color: "#3F51B5",
+    condition: "core_access"  // 核心区/电子门
+  }
+};
+
+/**
+ * 究极异兽映射 (Ultra Beast - 虫洞刷新)
+ * 对应 mapdata.json 中的 Ultra_Wormhole 实体
+ * 仅在 "ultra" 异变激活时可见/可交互
+ */
+window.ULTRA_BEAST_MAP = {
+  UB01_Nihilego: {
+    pokemon: { id: "nihilego", min: 55 },     // 虚吾伊德 #793
+    zone: "Z",
+    color: "#FFFFFF"
+  },
+  UB02_Buzzwole: {
+    pokemon: { id: "buzzwole", min: 55 },     // 爆肌蚊 #794
+    zone: "A",
+    color: "#D50000"
+  },
+  UB02_Pheromosa: {
+    pokemon: { id: "pheromosa", min: 55 },    // 费洛美螂 #795
+    zone: "B",
+    color: "#F8BBD0"
+  },
+  UB03_Xurkitree: {
+    pokemon: { id: "xurkitree", min: 55 },    // 电束木 #796
+    zone: "N",
+    color: "#FFAB00"
+  },
+  UB04_Celesteela: {
+    pokemon: { id: "celesteela", min: 55 },   // 铁火辉夜 #797
+    zone: "A",
+    color: "#2E7D32"
+  },
+  UB04_Kartana: {
+    pokemon: { id: "kartana", min: 55 },      // 纸御剑 #798
+    zone: "B",
+    color: "#E65100"
+  },
+  UB05_Guzzlord: {
+    pokemon: { id: "guzzlord", min: 55 },     // 恶食大王 #799
+    zone: "S",
+    color: "#212121"
+  },
+  UB_Blacephalon: {
+    pokemon: { id: "blacephalon", min: 55 },  // 砰头小丑 #806
+    zone: "N",
+    color: "#AA00FF"
+  },
+  UB_Stakataka: {
+    pokemon: { id: "stakataka", min: 55 },    // 垒磊石 #805
+    zone: "S",
+    color: "#546E7A"
+  },
+  UB_Poipole: {
+    pokemon: { id: "poipole", min: 40 },      // 毒贝比 #803 (Gift)
+    zone: "gift",
+    color: "#BA68C8"
+  }
+};
+
+/**
+ * 异变类型配置 (Phenomenon Config)
+ * 用于 tavern-inject.js 的时间轮换逻辑
+ */
+window.PHENOMENON_CONFIG = {
+  // 异变类型
+  types: {
+    clear: {
+      label: "和平",
+      description: "无异变，仅刷新基础野怪",
+      color: "#4CAF50"
+    },
+    ancient: {
+      label: "古代异变",
+      description: "悖谬宝可梦（古代种）出现",
+      color: "#795548",
+      regions: ["west"]  // A+B 区
+    },
+    future: {
+      label: "未来异变",
+      description: "悖谬宝可梦（未来种）出现",
+      color: "#2196F3",
+      regions: ["east"]  // N+S 区
+    },
+    ultra: {
+      label: "以太风暴",
+      description: "究极之洞开启，究极异兽出现",
+      color: "#9C27B0",
+      regions: ["random"]  // 随机 Zone
+    }
+  },
+  
+  // 区域映射
+  regionZones: {
+    west: ["A", "B"],      // 西部区域
+    east: ["N", "S"],      // 东部区域
+    all: ["A", "B", "N", "S", "Z"]
+  },
+  
+  // 星期轮换规则 (Week 2+)
+  // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+  weeklySchedule: {
+    0: { type: "clear", region: "none" },           // Sunday: 休息
+    1: { type: "ancient", region: "west" },         // Monday: 古代
+    2: { type: "future", region: "east" },          // Tuesday: 未来
+    3: { type: "ultra", region: "random" },         // Wednesday: 究极
+    4: { type: "ancient", region: "west" },         // Thursday: 古代
+    5: { type: "future", region: "east" },          // Friday: 未来
+    6: { type: "ultra", region: "random" }          // Saturday: 究极
+  },
+  
+  // 刷新概率
+  spawnChance: {
+    pool: 0.10,      // 范围刷新：每格 10%
+    boss: 1.00,      // 单点 Boss：100%
+    ultraBeast: 1.00 // 究极异兽：100%
+  }
+};

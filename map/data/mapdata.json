@@ -11,7 +11,7 @@
     "iid": "df3c0520-d380-11f0-8216-2fe3f79e70f9",
     "jsonVersion": "1.5.3",
     "appBuildId": 473703,
-    "nextUid": 92,
+    "nextUid": 94,
     "identifierStyle": "Capitalize",
     "toc": [],
     "worldLayout": "Free",
@@ -3021,37 +3021,61 @@
             "identifier": "Paradox_Anchors",
             "uid": 87,
             "values": [{
-                "id": "POINT_PAST_01",
+                "id": "Pool_Ancient_Sun",
                 "tileRect": null,
                 "color": 12470831
             }, {
-                "id": "POINT_PAST_02",
+                "id": "Pool_Ancient_Moon",
                 "tileRect": null,
                 "color": 14120515
             }, {
-                "id": "POINT_PAST_03",
+                "id": "Pool_Ancient_Earth",
                 "tileRect": null,
                 "color": 15389866
             }, {
-                "id": "POINT_PAST_04",
-                "tileRect": null,
-                "color": 14984818
-            }, {
-                "id": "POINT_FUTR_01",
+                "id": "Pool_Future_Sky",
                 "tileRect": null,
                 "color": 7552569
             }, {
-                "id": "POINT_FUTR_02",
+                "id": "Pool_Future_Drive",
                 "tileRect": null,
                 "color": 4073265
             }, {
-                "id": "POINT_FUTR_03",
+                "id": "Pool_Future_Code",
                 "tileRect": null,
                 "color": 16690740
             }, {
-                "id": "POINT_FUTR_04",
+                "id": "Elite_Walking_Wake",
                 "tileRect": null,
-                "color": 16705377
+                "color": 6539085
+            }, {
+                "id": "Elite_Gouging_Fire",
+                "tileRect": null,
+                "color": 4098376
+            }, {
+                "id": "Elite_Raging_Bolt",
+                "tileRect": null,
+                "color": 1199753
+            }, {
+                "id": "Elite_Iron_Leavs",
+                "tileRect": null,
+                "color": 39387
+            }, {
+                "id": "Elite_Iron_Boulder",
+                "tileRect": null,
+                "color": 2943221
+            }, {
+                "id": "Elite_Iron_Crown",
+                "tileRect": null,
+                "color": 16777215
+            }, {
+                "id": "Boss_Fut_Apex",
+                "tileRect": null,
+                "color": 12635100
+            }, {
+                "id": "Boss_Anc_Apex",
+                "tileRect": null,
+                "color": 14984818
             }],
             "iconTilesetUid": null,
             "externalRelPath": null,
@@ -3418,12 +3442,12 @@
                 "fieldInstances": [{
                     "__identifier": "Paradox_Anchors",
                     "__type": "LocalEnum.Paradox_Anchors",
-                    "__value": "POINT_PAST_01",
+                    "__value": "Pool_Ancient_Sun",
                     "__tile": null,
                     "defUid": 91,
                     "realEditorValues": [{
                         "id": "V_String",
-                        "params": ["POINT_PAST_01"]
+                        "params": ["Pool_Ancient_Sun"]
                     }]
                 }],
                 "__worldX": 208,
@@ -3443,12 +3467,12 @@
                 "fieldInstances": [{
                     "__identifier": "Paradox_Anchors",
                     "__type": "LocalEnum.Paradox_Anchors",
-                    "__value": "POINT_PAST_02",
+                    "__value": "Pool_Ancient_Moon",
                     "__tile": null,
                     "defUid": 91,
                     "realEditorValues": [{
                         "id": "V_String",
-                        "params": ["POINT_PAST_02"]
+                        "params": ["Pool_Ancient_Moon"]
                     }]
                 }],
                 "__worldX": 176,
@@ -3468,41 +3492,16 @@
                 "fieldInstances": [{
                     "__identifier": "Paradox_Anchors",
                     "__type": "LocalEnum.Paradox_Anchors",
-                    "__value": "POINT_PAST_03",
+                    "__value": "Pool_Ancient_Earth",
                     "__tile": null,
                     "defUid": 91,
                     "realEditorValues": [{
                         "id": "V_String",
-                        "params": ["POINT_PAST_03"]
+                        "params": ["Pool_Ancient_Earth"]
                     }]
                 }],
                 "__worldX": 224,
                 "__worldY": 112
-            }, {
-                "__identifier": "Paradox_Anchors",
-                "__grid": [6, 11],
-                "__pivot": [0, 0],
-                "__tags": [],
-                "__tile": null,
-                "__smartColor": "#E4A672",
-                "iid": "55235640-d380-11f0-8c64-795c68983f7f",
-                "width": 16,
-                "height": 16,
-                "defUid": 89,
-                "px": [96, 176],
-                "fieldInstances": [{
-                    "__identifier": "Paradox_Anchors",
-                    "__type": "LocalEnum.Paradox_Anchors",
-                    "__value": "POINT_PAST_04",
-                    "__tile": null,
-                    "defUid": 91,
-                    "realEditorValues": [{
-                        "id": "V_String",
-                        "params": ["POINT_PAST_04"]
-                    }]
-                }],
-                "__worldX": 96,
-                "__worldY": 176
             }, {
                 "__identifier": "Paradox_Anchors",
                 "__grid": [38, 39],
@@ -3518,12 +3517,12 @@
                 "fieldInstances": [{
                     "__identifier": "Paradox_Anchors",
                     "__type": "LocalEnum.Paradox_Anchors",
-                    "__value": "POINT_FUTR_01",
+                    "__value": "Pool_Future_Sky",
                     "__tile": null,
                     "defUid": 91,
                     "realEditorValues": [{
                         "id": "V_String",
-                        "params": ["POINT_FUTR_01"]
+                        "params": ["Pool_Future_Sky"]
                     }]
                 }],
                 "__worldX": 608,
@@ -3543,12 +3542,12 @@
                 "fieldInstances": [{
                     "__identifier": "Paradox_Anchors",
                     "__type": "LocalEnum.Paradox_Anchors",
-                    "__value": "POINT_FUTR_02",
+                    "__value": "Pool_Future_Drive",
                     "__tile": null,
                     "defUid": 91,
                     "realEditorValues": [{
                         "id": "V_String",
-                        "params": ["POINT_FUTR_02"]
+                        "params": ["Pool_Future_Drive"]
                     }]
                 }],
                 "__worldX": 736,
@@ -3568,41 +3567,216 @@
                 "fieldInstances": [{
                     "__identifier": "Paradox_Anchors",
                     "__type": "LocalEnum.Paradox_Anchors",
-                    "__value": "POINT_FUTR_03",
+                    "__value": "Pool_Future_Code",
                     "__tile": null,
                     "defUid": 91,
                     "realEditorValues": [{
                         "id": "V_String",
-                        "params": ["POINT_FUTR_03"]
+                        "params": ["Pool_Future_Code"]
                     }]
                 }],
                 "__worldX": 720,
                 "__worldY": 112
             }, {
                 "__identifier": "Paradox_Anchors",
-                "__grid": [30, 13],
+                "__grid": [25, 26],
                 "__pivot": [0, 0],
                 "__tags": [],
                 "__tile": null,
-                "__smartColor": "#FEE761",
-                "iid": "938863d0-d380-11f0-8c64-7521e5550b20",
+                "__smartColor": "#FFFFFF",
+                "iid": "6a597ed0-d380-11f0-8a32-173e3e4c8446",
                 "width": 16,
                 "height": 16,
                 "defUid": 89,
-                "px": [480, 208],
+                "px": [400, 416],
                 "fieldInstances": [{
                     "__identifier": "Paradox_Anchors",
                     "__type": "LocalEnum.Paradox_Anchors",
-                    "__value": "POINT_FUTR_04",
+                    "__value": "Elite_Iron_Crown",
                     "__tile": null,
                     "defUid": 91,
                     "realEditorValues": [{
                         "id": "V_String",
-                        "params": ["POINT_FUTR_04"]
+                        "params": ["Elite_Iron_Crown"]
                     }]
                 }],
-                "__worldX": 480,
-                "__worldY": 208
+                "__worldX": 400,
+                "__worldY": 416
+            }, {
+                "__identifier": "Paradox_Anchors",
+                "__grid": [16, 37],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#63C74D",
+                "iid": "7d59d840-d380-11f0-8a32-93072a6cef4e",
+                "width": 16,
+                "height": 16,
+                "defUid": 89,
+                "px": [256, 592],
+                "fieldInstances": [{
+                    "__identifier": "Paradox_Anchors",
+                    "__type": "LocalEnum.Paradox_Anchors",
+                    "__value": "Elite_Walking_Wake",
+                    "__tile": null,
+                    "defUid": 91,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["Elite_Walking_Wake"]
+                    }]
+                }],
+                "__worldX": 256,
+                "__worldY": 592
+            }, {
+                "__identifier": "Paradox_Anchors",
+                "__grid": [11, 10],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#3E8948",
+                "iid": "84c1bfd0-d380-11f0-8a32-5371a8ccf847",
+                "width": 16,
+                "height": 16,
+                "defUid": 89,
+                "px": [176, 160],
+                "fieldInstances": [{
+                    "__identifier": "Paradox_Anchors",
+                    "__type": "LocalEnum.Paradox_Anchors",
+                    "__value": "Elite_Gouging_Fire",
+                    "__tile": null,
+                    "defUid": 91,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["Elite_Gouging_Fire"]
+                    }]
+                }],
+                "__worldX": 176,
+                "__worldY": 160
+            }, {
+                "__identifier": "Paradox_Anchors",
+                "__grid": [5, 6],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#124E89",
+                "iid": "94940ad0-d380-11f0-8a32-e59cbb6987d2",
+                "width": 16,
+                "height": 16,
+                "defUid": 89,
+                "px": [80, 96],
+                "fieldInstances": [{
+                    "__identifier": "Paradox_Anchors",
+                    "__type": "LocalEnum.Paradox_Anchors",
+                    "__value": "Elite_Raging_Bolt",
+                    "__tile": null,
+                    "defUid": 91,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["Elite_Raging_Bolt"]
+                    }]
+                }],
+                "__worldX": 80,
+                "__worldY": 96
+            }, {
+                "__identifier": "Paradox_Anchors",
+                "__grid": [35, 38],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#0099DB",
+                "iid": "a1a82030-d380-11f0-8a32-c117f0a83342",
+                "width": 16,
+                "height": 16,
+                "defUid": 89,
+                "px": [560, 608],
+                "fieldInstances": [{
+                    "__identifier": "Paradox_Anchors",
+                    "__type": "LocalEnum.Paradox_Anchors",
+                    "__value": "Elite_Iron_Leavs",
+                    "__tile": null,
+                    "defUid": 91,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["Elite_Iron_Leavs"]
+                    }]
+                }],
+                "__worldX": 560,
+                "__worldY": 608
+            }, {
+                "__identifier": "Paradox_Anchors",
+                "__grid": [37, 9],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#2CE8F5",
+                "iid": "ab47a840-d380-11f0-8a32-1b54359dd408",
+                "width": 16,
+                "height": 16,
+                "defUid": 89,
+                "px": [592, 144],
+                "fieldInstances": [{
+                    "__identifier": "Paradox_Anchors",
+                    "__type": "LocalEnum.Paradox_Anchors",
+                    "__value": "Elite_Iron_Boulder",
+                    "__tile": null,
+                    "defUid": 91,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["Elite_Iron_Boulder"]
+                    }]
+                }],
+                "__worldX": 592,
+                "__worldY": 144
+            }, {
+                "__identifier": "Paradox_Anchors",
+                "__grid": [38, 34],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#C0CBDC",
+                "iid": "c4503230-d380-11f0-8a32-e1d3a80ffba8",
+                "width": 16,
+                "height": 16,
+                "defUid": 89,
+                "px": [608, 544],
+                "fieldInstances": [{
+                    "__identifier": "Paradox_Anchors",
+                    "__type": "LocalEnum.Paradox_Anchors",
+                    "__value": "Boss_Fut_Apex",
+                    "__tile": null,
+                    "defUid": 91,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["Boss_Fut_Apex"]
+                    }]
+                }],
+                "__worldX": 608,
+                "__worldY": 544
+            }, {
+                "__identifier": "Paradox_Anchors",
+                "__grid": [23, 16],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#E4A672",
+                "iid": "5616bd80-d380-11f0-9754-336e19915e14",
+                "width": 16,
+                "height": 16,
+                "defUid": 89,
+                "px": [368, 256],
+                "fieldInstances": [{
+                    "__identifier": "Paradox_Anchors",
+                    "__type": "LocalEnum.Paradox_Anchors",
+                    "__value": "Boss_Anc_Apex",
+                    "__tile": null,
+                    "defUid": 91,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["Boss_Anc_Apex"]
+                    }]
+                }],
+                "__worldX": 368,
+                "__worldY": 256
             }]
         }, {
             "__identifier": "Place_Anchor",

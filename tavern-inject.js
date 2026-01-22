@@ -2519,11 +2519,126 @@ ${contextText}
                     // 更新 lastGameDay
                     lastGameDay = detail?.newDay || eraVars?.world_state?.time?.day;
                     
+                    // 更新异变状态（基于新的天数）
+                    await updatePhenomenonByDay(detail?.newDay || lastGameDay);
+                    
                     console.log('[PKM] [POKEMON] ✓ 刷新完成');
                 } catch (e) {
                     console.error('[PKM] [POKEMON] 刷新失败:', e);
                 }
             });
+            
+            // ========== 异变系统刷新逻辑 ==========
+            // 根据天数更新 phenomenon 状态
+            async function updatePhenomenonByDay(day) {
+                if (!day || day < 1) return;
+                
+                console.log('[PKM] [PHENOMENON] 检查异变状态，当前天数:', day);
+                
+                // Week 1 (Day 1-7): 锁定为 clear
+                if (day <= 7) {
+                    console.log('[PKM] [PHENOMENON] 第一周，保持 clear 状态');
+                    await setPhenomenonState("clear", "none");
+                    return;
+                }
+                
+                // Week 2+ (Day > 7): 根据 dayOfWeek 轮换
+                // 计算星期几 (0=Sun, 1=Mon, ..., 6=Sat)
+                // day 8 = Week 2 Day 1 = Monday (1)
+                const dayOfWeek = ((day - 1) % 7); // 0-6
+                
+                // 星期轮换规则
+                const schedule = {
+                    0: { type: "clear", region: "none" },           // Sunday: 休息
+                    1: { type: "ancient", region: "west" },         // Monday: 古代
+                    2: { type: "future", region: "east" },          // Tuesday: 未来
+                    3: { type: "ultra", region: "random" },         // Wednesday: 究极
+                    4: { type: "ancient", region: "west" },         // Thursday: 古代
+                    5: { type: "future", region: "east" },          // Friday: 未来
+                    6: { type: "ultra", region: "random" }          // Saturday: 究极
+                };
+                
+                const todaySchedule = schedule[dayOfWeek] || { type: "clear", region: "none" };
+                
+                // 如果是 random 区域，随机选择一个 zone
+                let activeRegion = todaySchedule.region;
+                if (activeRegion === "random") {
+                    const zones = ["A", "B", "N", "S", "Z"];
+                    activeRegion = zones[Math.floor(Math.random() * zones.length)];
+                }
+                
+                console.log('[PKM] [PHENOMENON] Day', day, '-> dayOfWeek', dayOfWeek, 
+                    '-> type:', todaySchedule.type, 'region:', activeRegion);
+                
+                await setPhenomenonState(todaySchedule.type, activeRegion);
+            }
+            
+            // 设置异变状态（通过 VariableEdit 注入）
+            async function setPhenomenonState(activeType, activeRegion) {
+                try {
+                    // 获取当前 ERA 变量
+                    const eraVars = await getEraVars();
+                    const currentPhenomenon = eraVars?.world_state?.phenomenon || {};
+                    
+                    // 如果状态没有变化，跳过
+                    if (currentPhenomenon.active_type === activeType && 
+                        currentPhenomenon.active_region === activeRegion) {
+                        console.log('[PKM] [PHENOMENON] 状态未变化，跳过更新');
+                        return;
+                    }
+                    
+                    // 构建 VariableEdit JSON
+                    const variableEditData = {
+                        world_state: {
+                            phenomenon: {
+                                active_type: activeType,
+                                active_region: activeRegion
+                            }
+                        }
+                    };
+                    
+                    const variableEditJson = JSON.stringify(variableEditData, null, 2);
+                    const variableEditBlock = `<VariableEdit>\n${variableEditJson}\n</VariableEdit>`;
+                    
+                    console.log('[PKM] [PHENOMENON] 生成 VariableEdit:', variableEditBlock);
+                    
+                    // 获取最近一楼消息
+                    const lastMessageId = getLastMessageId();
+                    if (!lastMessageId) {
+                        console.warn('[PKM] [PHENOMENON] 无法获取最近消息ID');
+                        return;
+                    }
+                    
+                    const messages = getChatMessages(lastMessageId);
+                    if (!messages || messages.length === 0) {
+                        console.warn('[PKM] [PHENOMENON] 无法获取消息内容');
+                        return;
+                    }
+                    
+                    const msg = messages[0];
+                    let content = msg.message || '';
+                    
+                    // 在末尾追加 VariableEdit
+                    content = content.trim() + '\n\n' + variableEditBlock;
+                    
+                    // 更新消息
+                    await setChatMessages([{
+                        message_id: lastMessageId,
+                        message: content
+                    }], { refresh: 'affected' });
+                    
+                    console.log(`[PKM] [PHENOMENON] ✓ 已注入异变状态: ${activeType} / ${activeRegion}`);
+                    
+                    // 立即触发 ERA 变量更新
+                    if (typeof eventEmit !== 'undefined') {
+                        eventEmit('era:updateByObject', variableEditData);
+                        console.log('[PKM] [PHENOMENON] ✓ ERA 变量已更新');
+                    }
+                    
+                } catch (e) {
+                    console.error('[PKM] [PHENOMENON] 设置异变状态失败:', e);
+                }
+            }
         }
         
         // ========== 卸载清理函数（退出角色卡时调用）==========

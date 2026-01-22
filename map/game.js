@@ -140,6 +140,12 @@ window.onMapReady = null;
 // 防抖定时器，避免频繁刷新导致卡顿
 let eraRefreshDebounceTimer = null;
 
+// ========== 异变系统状态 ==========
+window.phenomenonState = {
+    active_type: "clear",
+    active_region: "none"
+};
+
 window.addEventListener('message', function(event) {
     // 处理全屏切换时的 resize 消息
     if (event.data && event.data.type === 'MAP_RESIZE') {
@@ -160,6 +166,11 @@ window.addEventListener('message', function(event) {
             window.PokemonSpawnCache.updateFromEra(eraData);
         }
         
+        // 更新异变状态
+        if (eraData?.world_state?.phenomenon) {
+            updatePhenomenonState(eraData.world_state.phenomenon);
+        }
+        
         // 对于刷新消息，使用防抖避免频繁更新位置和渲染
         if (isRefresh) {
             if (eraRefreshDebounceTimer) {
@@ -175,6 +186,86 @@ window.addEventListener('message', function(event) {
         }
     }
 });
+
+// 更新异变状态
+function updatePhenomenonState(phenomenon) {
+    const oldType = window.phenomenonState.active_type;
+    const oldRegion = window.phenomenonState.active_region;
+    
+    window.phenomenonState.active_type = phenomenon.active_type || "clear";
+    window.phenomenonState.active_region = phenomenon.active_region || "none";
+    
+    if (oldType !== window.phenomenonState.active_type || oldRegion !== window.phenomenonState.active_region) {
+        console.log('[MAP] 异变状态更新:', window.phenomenonState);
+        // 触发地图重绘以更新实体显示
+        if (window.TacticalSystem && window.TacticalSystem.isActive) {
+            // TacticalSystem 会在下一帧自动重绘
+        }
+    }
+}
+
+// 检查实体是否应该显示（基于当前异变状态）
+window.shouldShowPhenomenonEntity = function(entityType, entityValue) {
+    const state = window.phenomenonState;
+    
+    // 如果是 clear 状态，不显示任何异变实体
+    if (state.active_type === "clear") {
+        return false;
+    }
+    
+    // Ultra_Wormhole 实体
+    if (entityType === "Ultra_Wormhole") {
+        // 只在 ultra 异变时显示
+        if (state.active_type !== "ultra") return false;
+        
+        // 检查区域匹配
+        const ubConfig = window.ULTRA_BEAST_MAP?.[entityValue];
+        if (!ubConfig) return false;
+        
+        // random 区域时随机选择一个 zone 显示
+        if (state.active_region === "random") {
+            // 所有 UB 都显示（或根据具体逻辑过滤）
+            return true;
+        }
+        
+        return true;
+    }
+    
+    // Paradox_Anchors 实体
+    if (entityType === "Paradox_Anchors") {
+        // Pool 类型（范围刷新）
+        if (entityValue.startsWith("Pool_")) {
+            const poolConfig = window.PARADOX_SPAWN_POOLS?.[entityValue];
+            if (!poolConfig) return false;
+            
+            // 检查类型匹配
+            if (poolConfig.type !== state.active_type) return false;
+            
+            // 检查区域匹配
+            const regionZones = window.PHENOMENON_CONFIG?.regionZones;
+            if (state.active_region && regionZones) {
+                // 这里需要根据实体坐标判断所在区域
+                // 暂时简化：ancient 显示所有古代池，future 显示所有未来池
+                return true;
+            }
+            
+            return true;
+        }
+        
+        // Elite/Boss 类型（单点 Boss）
+        if (entityValue.startsWith("Elite_") || entityValue.startsWith("Boss_")) {
+            const bossConfig = window.STATIC_BOSS_MAP?.[entityValue];
+            if (!bossConfig) return false;
+            
+            // 检查类型匹配
+            if (bossConfig.type !== state.active_type) return false;
+            
+            return true;
+        }
+    }
+    
+    return false;
+};
 
 // 从 ERA 数据更新玩家位置
 function updatePlayerFromEra(eraData) {
