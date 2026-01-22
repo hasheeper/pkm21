@@ -667,7 +667,10 @@
                     transitStation: null,
                     lavaLine: null,
                     seaRoute: null,
-                    skyNet: null
+                    skyNet: null,
+                    // 异变实体
+                    paradoxAnchors: [],
+                    ultraWormholes: []
                 };
                 
                 if (!this.mapData || !this.mapData.levels || !this.mapData.levels[0]) return entities;
@@ -726,6 +729,16 @@
                                 entities.seaRoute = fieldValue;
                             } else if (id === 'Sky_Net') {
                                 entities.skyNet = fieldValue;
+                            } else if (layerId === 'Ultra_Wormhole' || id === 'Ultra_Wormhole') {
+                                // 究极之洞实体
+                                if (fieldValue) {
+                                    entities.ultraWormholes.push(fieldValue);
+                                }
+                            } else if (layerId === 'Paradox_Anchors' || id === 'Paradox_Anchors') {
+                                // 悖谬锚点实体
+                                if (fieldValue) {
+                                    entities.paradoxAnchors.push(fieldValue);
+                                }
                             }
                         }
                     }
@@ -1830,8 +1843,121 @@
                 return { id: pokemonId, level };
             },
             
+            // ========== 异变宝可梦生成逻辑 ==========
+            // 悖谬宝可梦刷怪池配置（内嵌，避免跨域问题）
+            PARADOX_SPAWN_POOLS: {
+                Pool_Ancient_Sun: { type: "ancient", pokemon: [{ id: "brutebonnet", min: 55 }, { id: "slitherwing", min: 55 }] },
+                Pool_Ancient_Moon: { type: "ancient", pokemon: [{ id: "screamtail", min: 55 }, { id: "fluttermane", min: 55 }] },
+                Pool_Ancient_Earth: { type: "ancient", pokemon: [{ id: "greattusk", min: 55 }, { id: "sandyshocks", min: 55 }] },
+                Pool_Future_Drive: { type: "future", pokemon: [{ id: "ironhands", min: 55 }, { id: "irontreads", min: 55 }] },
+                Pool_Future_Sky: { type: "future", pokemon: [{ id: "ironmoth", min: 55 }, { id: "ironjugulis", min: 55 }] },
+                Pool_Future_Code: { type: "future", pokemon: [{ id: "ironbundle", min: 55 }, { id: "ironthorns", min: 55 }] }
+            },
+            
+            // 单点 Boss 配置
+            STATIC_BOSS_MAP: {
+                Boss_Anc_Apex: { type: "ancient", pokemon: { id: "roaringmoon", min: 72 } },
+                Boss_Fut_Apex: { type: "future", pokemon: { id: "ironvaliant", min: 72 } },
+                Elite_Walking_Wake: { type: "ancient", pokemon: { id: "walkingwake", min: 68 } },
+                Elite_Raging_Bolt: { type: "ancient", pokemon: { id: "ragingbolt", min: 68 } },
+                Elite_Gouging_Fire: { type: "ancient", pokemon: { id: "gougingfire", min: 68 } },
+                Elite_Iron_Leavs: { type: "future", pokemon: { id: "ironleaves", min: 68 } },
+                Elite_Iron_Boulder: { type: "future", pokemon: { id: "ironboulder", min: 68 } },
+                Elite_Iron_Crown: { type: "future", pokemon: { id: "ironcrown", min: 68 } }
+            },
+            
+            // 究极异兽配置
+            ULTRA_BEAST_MAP: {
+                UB01_Nihilego: { pokemon: { id: "nihilego", min: 55 } },
+                UB02_Buzzwole: { pokemon: { id: "buzzwole", min: 55 } },
+                UB02_Pheromosa: { pokemon: { id: "pheromosa", min: 55 } },
+                UB03_Xurkitree: { pokemon: { id: "xurkitree", min: 55 } },
+                UB04_Celesteela: { pokemon: { id: "celesteela", min: 55 } },
+                UB04_Kartana: { pokemon: { id: "kartana", min: 55 } },
+                UB05_Guzzlord: { pokemon: { id: "guzzlord", min: 55 } },
+                UB_Blacephalon: { pokemon: { id: "blacephalon", min: 55 } },
+                UB_Stakataka: { pokemon: { id: "stakataka", min: 55 } }
+            },
+            
+            // 生成异变宝可梦（基于当前格子的实体和 phenomenon 状态）
+            spawnPhenomenonPokemon(gx, gy, phenomenon, entities) {
+                if (!phenomenon || phenomenon.active_type === "clear") return null;
+                
+                const activeType = phenomenon.active_type;
+                const activeRegion = phenomenon.active_region;
+                
+                // 检查当前格子是否有异变实体
+                const paradoxAnchors = entities.paradoxAnchors || [];
+                const ultraWormholes = entities.ultraWormholes || [];
+                
+                // Ultra 异变：检查究极之洞
+                if (activeType === "ultra" && ultraWormholes.length > 0) {
+                    for (const ub of ultraWormholes) {
+                        const config = this.ULTRA_BEAST_MAP[ub];
+                        if (config) {
+                            const level = config.pokemon.min + Math.floor(Math.random() * 10);
+                            return {
+                                id: config.pokemon.id,
+                                level,
+                                rarity: "ultra_beast",
+                                biome: "Ultra_Space",
+                                surface: "Wormhole",
+                                threat: 10,
+                                phenomenon: activeType
+                            };
+                        }
+                    }
+                }
+                
+                // Ancient/Future 异变：检查悖谬锚点
+                if ((activeType === "ancient" || activeType === "future") && paradoxAnchors.length > 0) {
+                    for (const anchor of paradoxAnchors) {
+                        // Boss 类型（100% 刷新）
+                        if (anchor.startsWith("Elite_") || anchor.startsWith("Boss_")) {
+                            const config = this.STATIC_BOSS_MAP[anchor];
+                            if (config && config.type === activeType) {
+                                const level = config.pokemon.min + Math.floor(Math.random() * 5);
+                                return {
+                                    id: config.pokemon.id,
+                                    level,
+                                    rarity: "paradox_boss",
+                                    biome: "Paradox_Zone",
+                                    surface: "Anchor",
+                                    threat: 10,
+                                    phenomenon: activeType
+                                };
+                            }
+                        }
+                        
+                        // Pool 类型（10% 概率）
+                        if (anchor.startsWith("Pool_")) {
+                            const config = this.PARADOX_SPAWN_POOLS[anchor];
+                            if (config && config.type === activeType) {
+                                // 10% 概率刷新
+                                if (Math.random() < 0.10) {
+                                    const pokemon = config.pokemon[Math.floor(Math.random() * config.pokemon.length)];
+                                    const level = pokemon.min + Math.floor(Math.random() * 10);
+                                    return {
+                                        id: pokemon.id,
+                                        level,
+                                        rarity: "paradox",
+                                        biome: "Paradox_Zone",
+                                        surface: "Anchor",
+                                        threat: 8,
+                                        phenomenon: activeType
+                                    };
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                return null;
+            },
+            
             // 生成单个格子的宝可梦列表
-            spawnForGrid(gx, gy, spawnTablesData) {
+            // phenomenon: { active_type, active_region } 异变状态
+            spawnForGrid(gx, gy, spawnTablesData, phenomenon = null) {
                 const gridInfo = LocationContextBackend.getGridInfo(gx, gy);
                 const entities = LocationContextBackend.getEntitiesAtGrid(gx, gy);
                 
@@ -1863,6 +1989,15 @@
                 const count = 4 + Math.floor(Math.random() * 2);
                 const results = [];
                 const levelRange = this.getLevelRange(threat);
+                
+                // ========== 异变宝可梦注入（基于 phenomenon 状态）==========
+                if (phenomenon && phenomenon.active_type !== "clear") {
+                    const phenomenonPokemon = this.spawnPhenomenonPokemon(gx, gy, phenomenon, entities);
+                    if (phenomenonPokemon) {
+                        results.push(phenomenonPokemon);
+                        console.log(`[PKM] ★ 异变宝可梦: ${phenomenonPokemon.id} Lv.${phenomenonPokemon.level} (${phenomenon.active_type})`);
+                    }
+                }
                 
                 // ========== Legendary 独立判定（0.1% 概率）==========
                 // Legendary 宝可梦单独判定，不占用普通宝可梦位置
@@ -1947,6 +2082,10 @@
                 // 获取当前 ERA 中已存在的宝可梦区域（强制刷新时忽略）
                 const existingSpawns = forceRefresh ? {} : (eraVars?.world_state?.pokemon_spawns || {});
                 
+                // 获取当前异变状态
+                const phenomenon = eraVars?.world_state?.phenomenon || { active_type: "clear", active_region: "none" };
+                console.log('[PKM] [SPAWN] 当前异变状态:', phenomenon);
+                
                 // 半径2格的所有格子（与地标范围一致）
                 const offsets = [
                     { dx: 0, dy: 0 },   // 当前格子
@@ -1967,8 +2106,8 @@
                         continue;
                     }
                     
-                    // 生成该格子的宝可梦
-                    const pokemonList = this.spawnForGrid(gx, gy, spawnTablesData);
+                    // 生成该格子的宝可梦（传入异变状态）
+                    const pokemonList = this.spawnForGrid(gx, gy, spawnTablesData, phenomenon);
                     if (pokemonList.length > 0) {
                         // 转换为对象结构（ERA 不支持数组）
                         const pokemonObj = {};
