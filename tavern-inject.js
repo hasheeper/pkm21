@@ -2744,11 +2744,14 @@ ${contextText}
                 console.log('[PKM] ✓ 已退出全屏模式');
             }
             
-            // 通知 PKM iframe 内部调整大小
+            // 通知 PKM iframe 内部切换全屏模式
             const pkmIframe = document.getElementById('pkm-iframe');
             if (pkmIframe && pkmIframe.contentWindow) {
                 setTimeout(() => {
-                    pkmIframe.contentWindow.postMessage({ type: 'MAP_RESIZE' }, '*');
+                    pkmIframe.contentWindow.postMessage({ 
+                        type: 'PKM_FULLSCREEN_MODE', 
+                        fullscreen: isFullscreen 
+                    }, '*');
                 }, 150);
             }
         }

@@ -736,6 +736,29 @@ window.addEventListener('message', function(event) {
         if (mapIframe && mapIframe.contentWindow) {
             mapIframe.contentWindow.postMessage({ type: 'MAP_RESIZE' }, '*');
         }
+    } else if (event.data.type === 'PKM_FULLSCREEN_MODE') {
+        // 收到全屏模式切换消息，让 MAP 模态框也跟着全屏
+        const isFullscreen = event.data.fullscreen;
+        console.log('[PKM] 收到全屏模式切换:', isFullscreen);
+        
+        const modal = document.getElementById('map-modal');
+        if (modal) {
+            if (isFullscreen) {
+                modal.classList.add('fullscreen');
+                document.body.classList.add('map-fullscreen-active');
+            } else {
+                modal.classList.remove('fullscreen');
+                document.body.classList.remove('map-fullscreen-active');
+            }
+        }
+        
+        // 转发给 map iframe 调整 canvas 大小
+        const mapIframe = document.getElementById('map-iframe');
+        if (mapIframe && mapIframe.contentWindow) {
+            setTimeout(() => {
+                mapIframe.contentWindow.postMessage({ type: 'MAP_RESIZE' }, '*');
+            }, 100);
+        }
     }
 });
 
