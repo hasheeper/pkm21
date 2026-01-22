@@ -1327,9 +1327,16 @@ function resizeCanvas() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
     
-    // 更新 TacticalSystem 尺寸
+    // 如果战术视图正在运行，退出并重新进入以刷新渲染
     if (window.TacticalSystem && window.TacticalSystem.isActive) {
-        window.TacticalSystem.resize(canvas.width, canvas.height);
+        const ts = window.TacticalSystem;
+        const playerGx = ts.playerGrid.x;
+        const playerGy = ts.playerGrid.y;
+        ts.exit();
+        setTimeout(() => {
+            ts.enter(ctx, canvas.width, canvas.height, playerGx, playerGy);
+        }, 50);
+        console.log('[MAP] TacticalSystem 已重新进入');
     }
     
     console.log('[MAP] Canvas 已调整:', w, 'x', h);
