@@ -736,40 +736,13 @@ window.addEventListener('message', function(event) {
         if (mapIframe && mapIframe.contentWindow) {
             mapIframe.contentWindow.postMessage({ type: 'MAP_RESIZE' }, '*');
         }
-    } else if (event.data.type === 'PKM_FULLSCREEN_MODE') {
-        // 收到全屏模式切换，让整个手机容器和 MAP 都全屏
-        const isFullscreen = event.data.fullscreen;
-        console.log('[PKM] 收到全屏模式切换:', isFullscreen);
-        
-        const container = document.querySelector('.ver-dawn-frame');
+    } else if (event.data.type === 'PKM_EXIT_MAP_FULLSCREEN') {
+        // 收到退出全屏消息，退出 MAP 全屏模式
+        console.log('[PKM] 收到退出全屏消息');
         const modal = document.getElementById('map-modal');
-        
-        if (isFullscreen) {
-            // 让手机容器也全屏
-            if (container) {
-                container.style.cssText = 'width:100vw !important;height:100vh !important;max-width:none !important;max-height:none !important;border-radius:0 !important;';
-            }
-            if (modal) {
-                modal.classList.add('fullscreen');
-            }
-            document.body.classList.add('map-fullscreen-active');
-        } else {
-            // 恢复手机容器原始样式
-            if (container) {
-                container.style.cssText = '';
-            }
-            if (modal) {
-                modal.classList.remove('fullscreen');
-            }
+        if (modal && modal.classList.contains('fullscreen')) {
+            modal.classList.remove('fullscreen');
             document.body.classList.remove('map-fullscreen-active');
-        }
-        
-        // 转发给 map iframe 调整 canvas 大小
-        const mapIframe = document.getElementById('map-iframe');
-        if (mapIframe && mapIframe.contentWindow) {
-            setTimeout(() => {
-                mapIframe.contentWindow.postMessage({ type: 'MAP_RESIZE' }, '*');
-            }, 100);
         }
     }
 });
@@ -2618,7 +2591,10 @@ window.openMapSystem = function() {
         modal.innerHTML = `
             <div class="map-modal-header">
                 <span class="map-modal-title">TACTICAL MAP</span>
-                <button class="map-modal-close" onclick="closeMapSystem()">✕</button>
+                <div class="map-modal-actions">
+                    <button class="map-modal-fullscreen" onclick="toggleMapFullscreen()" title="全屏">⛶</button>
+                    <button class="map-modal-close" onclick="closeMapSystem()">✕</button>
+                </div>
             </div>
             <iframe id="map-iframe" frameborder="0"></iframe>
         `;
@@ -2650,11 +2626,29 @@ window.openMapSystem = function() {
 // 关闭 MAP 系统
 window.closeMapSystem = function() {
     const modal = document.getElementById('map-modal');
-    if (modal) {
-        modal.classList.remove('active');
+    if (!modal) return;
+    
+    // 如果在全屏模式，先退出全屏
+    if (modal.classList.contains('fullscreen')) {
+        // 通知父级窗口退出全屏
+        const message = { type: 'PKM_MAP_FULLSCREEN', fullscreen: false };
+        try {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage(message, '*');
+            }
+            if (window.top && window.top !== window && window.top !== window.parent) {
+                window.top.postMessage(message, '*');
+            }
+        } catch (e) {
+            console.error('[PKM] postMessage 发送失败:', e);
+        }
         modal.classList.remove('fullscreen');
         document.body.classList.remove('map-fullscreen-active');
+        console.log('[PKM] MAP 关闭时退出全屏');
     }
+    
+    // 关闭 MAP 模态框
+    modal.classList.remove('active');
 };
 
 // 切换 MAP 全屏模式

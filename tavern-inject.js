@@ -145,58 +145,6 @@
                 'overflow': 'hidden'
             });
         
-        // 全屏按钮
-        const fullscreenIconSvg = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-        </svg>`;
-        
-        const fullscreenBtn = $('<div>')
-            .attr('id', 'pkm-fullscreen-btn')
-            .html(fullscreenIconSvg)
-            .css({
-                'position': 'absolute',
-                'top': '-5px',
-                'right': '40px',
-                'width': '40px',
-                'height': '40px',
-                'background': 'rgba(255, 255, 255, 0.85)',
-                'backdrop-filter': 'blur(4px)',
-                'border-radius': '50%',
-                'cursor': 'pointer',
-                'display': 'flex',
-                'align-items': 'center',
-                'justify-content': 'center',
-                'color': '#0984e3',
-                'z-index': 100,
-                'pointer-events': 'auto',
-                'transition': 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
-            });
-        
-        fullscreenBtn.hover(
-            function() {
-                $(this).css({
-                    'transform': 'scale(1.1)',
-                    'background': '#0984e3',
-                    'color': '#fff'
-                });
-            },
-            function() {
-                $(this).css({
-                    'transform': 'scale(1)',
-                    'background': 'rgba(255, 255, 255, 0.85)',
-                    'color': '#0984e3'
-                });
-            }
-        );
-        
-        // 全屏按钮点击事件 - 直接调用 handleMapFullscreen
-        let isFullscreenMode = false;
-        fullscreenBtn.on('click', function() {
-            isFullscreenMode = !isFullscreenMode;
-            handleMapFullscreen(isFullscreenMode);
-        });
-        
         // 关闭按钮（参考 build-iframe.js）
         const closeIconSvg = `
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;">
@@ -243,18 +191,8 @@
             }
         );
         
-        // 关闭按钮点击事件
-        closeBtn.on('click', function() {
-            // 如果在全屏模式，先退出全屏
-            if (isFullscreenMode) {
-                isFullscreenMode = false;
-                handleMapFullscreen(false);
-            }
-            overlay.css('display', 'none');
-        });
-        
         // 组装
-        contentWrapper.append(iframe).append(fullscreenBtn).append(closeBtn);
+        contentWrapper.append(iframe).append(closeBtn);
         overlay.append(contentWrapper);
         container.append(ball);
         $('body').append(container).append(overlay).append(hiddenIframe);
@@ -2703,8 +2641,11 @@ ${contextText}
         });
         
         // ========== MAP 全屏处理 ==========
+        let isMapFullscreen = false; // 记录当前全屏状态
+        
         function handleMapFullscreen(isFullscreen) {
             console.log('[PKM] 收到 MAP 全屏请求:', isFullscreen);
+            isMapFullscreen = isFullscreen;
             
             const wrapper = $('#pkm-content-wrapper');
             const iframeEl = $('#pkm-iframe');
@@ -2725,7 +2666,6 @@ ${contextText}
                     'padding': '0',
                     'height': '100vh'
                 });
-                // 不隐藏关闭按钮，保持可用
                 console.log('[PKM] ✓ 已切换到全屏模式');
             } else {
                 // 恢复正常模式
@@ -2745,15 +2685,24 @@ ${contextText}
                 console.log('[PKM] ✓ 已退出全屏模式');
             }
             
-            // 通知 PKM iframe 内部切换全屏模式
+            // 通知 PKM iframe 内部调整大小
             const pkmIframe = document.getElementById('pkm-iframe');
             if (pkmIframe && pkmIframe.contentWindow) {
                 setTimeout(() => {
-                    pkmIframe.contentWindow.postMessage({ 
-                        type: 'PKM_FULLSCREEN_MODE', 
-                        fullscreen: isFullscreen 
-                    }, '*');
+                    pkmIframe.contentWindow.postMessage({ type: 'MAP_RESIZE' }, '*');
                 }, 150);
+            }
+        }
+        
+        // 退出全屏（供外部调用）
+        function exitMapFullscreen() {
+            if (isMapFullscreen) {
+                handleMapFullscreen(false);
+                // 通知 PKM iframe 内部也退出全屏
+                const pkmIframe = document.getElementById('pkm-iframe');
+                if (pkmIframe && pkmIframe.contentWindow) {
+                    pkmIframe.contentWindow.postMessage({ type: 'PKM_EXIT_MAP_FULLSCREEN' }, '*');
+                }
             }
         }
         
