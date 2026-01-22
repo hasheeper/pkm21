@@ -190,12 +190,11 @@
             }
         );
         
-        // 全屏按钮点击事件 - 调用 PKM iframe 内部的 toggleMapFullscreen
+        // 全屏按钮点击事件 - 直接调用 handleMapFullscreen
+        let isFullscreenMode = false;
         fullscreenBtn.on('click', function() {
-            const pkmIframe = document.getElementById('pkm-iframe');
-            if (pkmIframe && pkmIframe.contentWindow && pkmIframe.contentWindow.toggleMapFullscreen) {
-                pkmIframe.contentWindow.toggleMapFullscreen();
-            }
+            isFullscreenMode = !isFullscreenMode;
+            handleMapFullscreen(isFullscreenMode);
         });
         
         // 关闭按钮（参考 build-iframe.js）
@@ -246,13 +245,10 @@
         
         // 关闭按钮点击事件
         closeBtn.on('click', function() {
-            // 如果 MAP 在全屏模式，先退出全屏
-            const pkmIframe = document.getElementById('pkm-iframe');
-            if (pkmIframe && pkmIframe.contentWindow) {
-                const modal = pkmIframe.contentWindow.document.getElementById('map-modal');
-                if (modal && modal.classList.contains('fullscreen')) {
-                    pkmIframe.contentWindow.toggleMapFullscreen();
-                }
+            // 如果在全屏模式，先退出全屏
+            if (isFullscreenMode) {
+                isFullscreenMode = false;
+                handleMapFullscreen(false);
             }
             overlay.css('display', 'none');
         });
