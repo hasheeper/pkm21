@@ -729,6 +729,13 @@ window.addEventListener('message', function(event) {
             // 使用防抖避免频繁刷新导致卡顿
             handleRefreshDebounced(event.data);
         }
+    } else if (event.data.type === 'MAP_RESIZE') {
+        // 收到外部容器 resize 消息，转发给 map iframe
+        console.log('[PKM] 收到 MAP_RESIZE 消息，转发给 map iframe');
+        const mapIframe = document.getElementById('map-iframe');
+        if (mapIframe && mapIframe.contentWindow) {
+            mapIframe.contentWindow.postMessage({ type: 'MAP_RESIZE' }, '*');
+        }
     }
 });
 
@@ -2633,12 +2640,23 @@ window.toggleMapFullscreen = function() {
         btn.title = isFullscreen ? '退出全屏' : '全屏';
     }
     
-    // 通知父级 iframe 容器调整大小（用于 tavern-inject.js）
-    if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ 
-            type: 'PKM_MAP_FULLSCREEN', 
-            fullscreen: isFullscreen 
-        }, '*');
+    // 通知父级窗口调整 PKM 容器大小（用于 tavern-inject.js）
+    // 与 script.js 中 PKM_SET_LEADER 发送方式一致
+    const message = {
+        type: 'PKM_MAP_FULLSCREEN',
+        fullscreen: isFullscreen
+    };
+    try {
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage(message, '*');
+            console.log('[PKM] ✓ 已发送全屏消息到 parent');
+        }
+        if (window.top && window.top !== window && window.top !== window.parent) {
+            window.top.postMessage(message, '*');
+            console.log('[PKM] ✓ 已发送全屏消息到 top');
+        }
+    } catch (e) {
+        console.error('[PKM] postMessage 发送失败:', e);
     }
     
     // 通知 map iframe 调整大小

@@ -2636,37 +2636,63 @@ ${contextText}
             
             // 处理 MAP 全屏切换请求
             if (event.data.type === 'PKM_MAP_FULLSCREEN') {
-                const isFullscreen = event.data.fullscreen;
-                console.log('[PKM] 收到 MAP 全屏请求:', isFullscreen);
-                
-                const wrapper = $('#pkm-content-wrapper');
-                const iframeEl = $('#pkm-iframe');
-                
-                if (isFullscreen) {
-                    // 全屏模式：移除尺寸限制
-                    wrapper.css({
-                        'max-width': '100vw',
-                        'max-height': '100vh',
-                        'width': '100vw',
-                        'height': '100vh'
-                    });
-                    iframeEl.css({
-                        'border-radius': '0'
-                    });
-                } else {
-                    // 恢复正常模式
-                    wrapper.css({
-                        'max-width': '485px',
-                        'max-height': '850px',
-                        'width': '100%',
-                        'height': '95vh'
-                    });
-                    iframeEl.css({
-                        'border-radius': '24px'
-                    });
-                }
+                handleMapFullscreen(event.data.fullscreen);
             }
         });
+        
+        // ========== MAP 全屏处理 ==========
+        function handleMapFullscreen(isFullscreen) {
+            console.log('[PKM] 收到 MAP 全屏请求:', isFullscreen);
+            
+            const wrapper = $('#pkm-content-wrapper');
+            const iframeEl = $('#pkm-iframe');
+            const overlay = $('#pkm-overlay');
+            
+            if (isFullscreen) {
+                // 全屏模式：移除尺寸限制，让 MAP 占满整个屏幕
+                wrapper.css({
+                    'max-width': '100vw',
+                    'max-height': '100vh',
+                    'width': '100vw',
+                    'height': '100vh'
+                });
+                iframeEl.css({
+                    'border-radius': '0'
+                });
+                overlay.css({
+                    'padding': '0',
+                    'height': '100vh'
+                });
+                // 隐藏关闭按钮（全屏时通过 MAP 内的按钮退出）
+                $('#pkm-close-btn').hide();
+                console.log('[PKM] ✓ 已切换到全屏模式');
+            } else {
+                // 恢复正常模式
+                wrapper.css({
+                    'max-width': '485px',
+                    'max-height': '850px',
+                    'width': '100%',
+                    'height': '95vh'
+                });
+                iframeEl.css({
+                    'border-radius': '24px'
+                });
+                overlay.css({
+                    'padding': '1px',
+                    'height': '97.5vh'
+                });
+                $('#pkm-close-btn').show();
+                console.log('[PKM] ✓ 已退出全屏模式');
+            }
+            
+            // 通知 PKM iframe 内部调整大小
+            const pkmIframe = document.getElementById('pkm-iframe');
+            if (pkmIframe && pkmIframe.contentWindow) {
+                setTimeout(() => {
+                    pkmIframe.contentWindow.postMessage({ type: 'MAP_RESIZE' }, '*');
+                }, 150);
+            }
+        }
         
         // ========== Leader 切换处理 ==========
         let leaderToggleLock = false;
@@ -2850,6 +2876,12 @@ ${contextText}
                         const settingsData = event.data.data;
                         console.log('[PKM] 收到 Settings 更新请求 (top listener):', settingsData);
                         handleSettingsToggle(settingsData);
+                    }
+                    
+                    if (event.data.type === 'PKM_MAP_FULLSCREEN') {
+                        const isFullscreen = event.data.fullscreen;
+                        console.log('[PKM] 收到 MAP 全屏请求 (top listener):', isFullscreen);
+                        handleMapFullscreen(isFullscreen);
                     }
                 });
                 console.log('[PKM] ✓ 已在酒馆主窗口注册 postMessage 监听器');
