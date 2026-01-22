@@ -633,7 +633,6 @@ window.SPAWN_TABLES_DATA = {
         "aipom",
         "mankey",
         "slakoth",
-        "leafeon",
       ],
 
       uncommon: [
@@ -680,6 +679,7 @@ window.SPAWN_TABLES_DATA = {
         "rowlet",
         "grookey",
         "sprigatito",
+        "leafeon",
 
         { id: "snorlax", min: 35 },
       ],
