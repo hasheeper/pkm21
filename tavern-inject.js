@@ -2538,14 +2538,17 @@ ${contextText}
                 // Week 1 (Day 1-7): 锁定为 clear
                 if (day <= 7) {
                     console.log('[PKM] [PHENOMENON] 第一周，保持 clear 状态');
-                    await setPhenomenonState("clear", "none");
+                    // 第一周也需要确保注入初始状态
+                    await setPhenomenonState("clear", "none", true);
                     return;
                 }
                 
                 // Week 2+ (Day > 7): 根据 dayOfWeek 轮换
-                // 计算星期几 (0=Sun, 1=Mon, ..., 6=Sat)
-                // day 8 = Week 2 Day 1 = Monday (1)
-                const dayOfWeek = ((day - 1) % 7); // 0-6
+                // Day 1-7 = Week 1 (Mon-Sun)
+                // Day 8 = Week 2 Monday, Day 9 = Week 2 Tuesday, ...
+                // dayOfWeek: 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat, 0=Sun
+                const dayOfWeek = ((day - 1) % 7) + 1; // 1-7, 然后 7 变成 0 (Sunday)
+                const normalizedDayOfWeek = dayOfWeek === 7 ? 0 : dayOfWeek; // 0=Sun, 1=Mon, ..., 6=Sat
                 
                 // 星期轮换规则
                 const schedule = {
@@ -2558,7 +2561,7 @@ ${contextText}
                     6: { type: "ultra", region: "random" }          // Saturday: 究极
                 };
                 
-                const todaySchedule = schedule[dayOfWeek] || { type: "clear", region: "none" };
+                const todaySchedule = schedule[normalizedDayOfWeek] || { type: "clear", region: "none" };
                 
                 // 如果是 random 区域，随机选择一个 zone
                 let activeRegion = todaySchedule.region;
@@ -2567,24 +2570,31 @@ ${contextText}
                     activeRegion = zones[Math.floor(Math.random() * zones.length)];
                 }
                 
-                console.log('[PKM] [PHENOMENON] Day', day, '-> dayOfWeek', dayOfWeek, 
+                console.log('[PKM] [PHENOMENON] Day', day, '-> dayOfWeek', normalizedDayOfWeek, 
                     '-> type:', todaySchedule.type, 'region:', activeRegion);
                 
                 await setPhenomenonState(todaySchedule.type, activeRegion);
             }
             
             // 设置异变状态（通过 VariableEdit 注入）
-            async function setPhenomenonState(activeType, activeRegion) {
+            async function setPhenomenonState(activeType, activeRegion, forceUpdate = false) {
                 try {
                     // 获取当前 ERA 变量
                     const eraVars = await getEraVars();
                     const currentPhenomenon = eraVars?.world_state?.phenomenon || {};
                     
-                    // 如果状态没有变化，跳过
-                    if (currentPhenomenon.active_type === activeType && 
+                    // 如果状态没有变化且不强制更新，跳过
+                    if (!forceUpdate && 
+                        currentPhenomenon.active_type === activeType && 
                         currentPhenomenon.active_region === activeRegion) {
                         console.log('[PKM] [PHENOMENON] 状态未变化，跳过更新');
                         return;
+                    }
+                    
+                    // 如果 phenomenon 字段不存在，强制更新
+                    if (!eraVars?.world_state?.phenomenon) {
+                        console.log('[PKM] [PHENOMENON] phenomenon 字段不存在，强制初始化');
+                        forceUpdate = true;
                     }
                     
                     // 构建 VariableEdit JSON
