@@ -2576,7 +2576,10 @@ window.openMapSystem = function() {
         modal.innerHTML = `
             <div class="map-modal-header">
                 <span class="map-modal-title">TACTICAL MAP</span>
-                <button class="map-modal-close" onclick="closeMapSystem()">✕</button>
+                <div class="map-modal-actions">
+                    <button class="map-modal-fullscreen" onclick="toggleMapFullscreen()" title="全屏">⛶</button>
+                    <button class="map-modal-close" onclick="closeMapSystem()">✕</button>
+                </div>
             </div>
             <iframe id="map-iframe" frameborder="0"></iframe>
         `;
@@ -2610,7 +2613,35 @@ window.closeMapSystem = function() {
     const modal = document.getElementById('map-modal');
     if (modal) {
         modal.classList.remove('active');
+        modal.classList.remove('fullscreen');
+        document.body.classList.remove('map-fullscreen-active');
     }
+};
+
+// 切换 MAP 全屏模式
+window.toggleMapFullscreen = function() {
+    const modal = document.getElementById('map-modal');
+    if (!modal) return;
+    
+    const isFullscreen = modal.classList.toggle('fullscreen');
+    document.body.classList.toggle('map-fullscreen-active', isFullscreen);
+    
+    // 更新按钮图标
+    const btn = modal.querySelector('.map-modal-fullscreen');
+    if (btn) {
+        btn.textContent = isFullscreen ? '⛶' : '⛶';
+        btn.title = isFullscreen ? '退出全屏' : '全屏';
+    }
+    
+    // 通知 iframe 调整大小
+    const iframe = document.getElementById('map-iframe');
+    if (iframe && iframe.contentWindow) {
+        setTimeout(() => {
+            iframe.contentWindow.postMessage({ type: 'MAP_RESIZE' }, '*');
+        }, 100);
+    }
+    
+    console.log('[PKM] MAP 全屏模式:', isFullscreen ? '开启' : '关闭');
 };
 
 // 设置 MAP iframe 的回调

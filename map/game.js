@@ -141,6 +141,13 @@ window.onMapReady = null;
 let eraRefreshDebounceTimer = null;
 
 window.addEventListener('message', function(event) {
+    // 处理全屏切换时的 resize 消息
+    if (event.data && event.data.type === 'MAP_RESIZE') {
+        console.log('[MAP] 收到 resize 消息，重新调整画布大小');
+        resizeCanvas();
+        return;
+    }
+    
     // 处理 PKM_ERA_DATA（初始化）和 PKM_REFRESH（刷新）
     if (event.data && (event.data.type === 'PKM_ERA_DATA' || event.data.type === 'PKM_REFRESH')) {
         const eraData = event.data.data;

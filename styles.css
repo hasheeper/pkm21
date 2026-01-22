@@ -3836,6 +3836,67 @@ body {
     min-height: 0;
 }
 
+/* MAP 模态框头部按钮组 */
+.map-modal-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.map-modal-fullscreen {
+    width: 28px;
+    height: 28px;
+    background: rgba(9, 132, 227, 0.1);
+    border: 1px solid rgba(9, 132, 227, 0.3);
+    border-radius: 4px;
+    color: #0984e3;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.map-modal-fullscreen:hover {
+    background: rgba(9, 132, 227, 0.2);
+    border-color: #0984e3;
+    transform: scale(1.05);
+}
+
+/* MAP 全屏模式 */
+.map-modal.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    z-index: 99999;
+}
+
+body.map-fullscreen-active {
+    overflow: hidden;
+}
+
+/* 全屏模式下的头部样式调整 */
+.map-modal.fullscreen .map-modal-header {
+    padding: 12px 20px;
+}
+
+.map-modal.fullscreen .map-modal-title {
+    font-size: 1rem;
+}
+
+.map-modal.fullscreen .map-modal-fullscreen,
+.map-modal.fullscreen .map-modal-close {
+    width: 36px;
+    height: 36px;
+    font-size: 1.2rem;
+}
+
 /* =========================================
    [REMASTERED v2] TRANSIT SYSTEM
    Style: Bright Sci-Fi / Tactical Terminal

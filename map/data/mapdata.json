@@ -11,7 +11,7 @@
     "iid": "df3c0520-d380-11f0-8216-2fe3f79e70f9",
     "jsonVersion": "1.5.3",
     "appBuildId": 473703,
-    "nextUid": 83,
+    "nextUid": 92,
     "identifierStyle": "Capitalize",
     "toc": [],
     "worldLayout": "Free",
@@ -42,6 +42,74 @@
     "flags": [],
     "defs": {
         "layers": [{
+            "__type": "Entities",
+            "identifier": "Ultra_Wormhole",
+            "type": "Entities",
+            "uid": 84,
+            "doc": null,
+            "uiColor": null,
+            "gridSize": 16,
+            "guideGridWid": 0,
+            "guideGridHei": 0,
+            "displayOpacity": 1,
+            "inactiveOpacity": 0.6,
+            "hideInList": false,
+            "hideFieldsWhenInactive": true,
+            "canSelectWhenInactive": true,
+            "renderInWorldView": true,
+            "pxOffsetX": 0,
+            "pxOffsetY": 0,
+            "parallaxFactorX": 0,
+            "parallaxFactorY": 0,
+            "parallaxScaling": true,
+            "requiredTags": [],
+            "excludedTags": [],
+            "autoTilesKilledByOtherLayerUid": null,
+            "uiFilterTags": [],
+            "useAsyncRender": false,
+            "intGridValues": [],
+            "intGridValuesGroups": [],
+            "autoRuleGroups": [],
+            "autoSourceLayerDefUid": null,
+            "tilesetDefUid": null,
+            "tilePivotX": 0,
+            "tilePivotY": 0,
+            "biomeFieldUid": null
+        }, {
+            "__type": "Entities",
+            "identifier": "Paradox_Anchors",
+            "type": "Entities",
+            "uid": 88,
+            "doc": null,
+            "uiColor": null,
+            "gridSize": 16,
+            "guideGridWid": 0,
+            "guideGridHei": 0,
+            "displayOpacity": 1,
+            "inactiveOpacity": 0.6,
+            "hideInList": false,
+            "hideFieldsWhenInactive": true,
+            "canSelectWhenInactive": true,
+            "renderInWorldView": true,
+            "pxOffsetX": 0,
+            "pxOffsetY": 0,
+            "parallaxFactorX": 0,
+            "parallaxFactorY": 0,
+            "parallaxScaling": true,
+            "requiredTags": [],
+            "excludedTags": [],
+            "autoTilesKilledByOtherLayerUid": null,
+            "uiFilterTags": [],
+            "useAsyncRender": false,
+            "intGridValues": [],
+            "intGridValuesGroups": [],
+            "autoRuleGroups": [],
+            "autoSourceLayerDefUid": null,
+            "tilesetDefUid": null,
+            "tilePivotX": 0,
+            "tilePivotY": 0,
+            "biomeFieldUid": null
+        }, {
             "__type": "Entities",
             "identifier": "Place_Anchor",
             "type": "Entities",
@@ -2030,6 +2098,146 @@
                 "allowedRefTags": [],
                 "tilesetUid": null
             }]
+        }, {
+            "identifier": "Ultra_Wormhole",
+            "uid": 85,
+            "tags": [],
+            "exportToToc": false,
+            "allowOutOfBounds": false,
+            "doc": null,
+            "width": 16,
+            "height": 16,
+            "resizableX": false,
+            "resizableY": false,
+            "minWidth": null,
+            "maxWidth": null,
+            "minHeight": null,
+            "maxHeight": null,
+            "keepAspectRatio": false,
+            "tileOpacity": 1,
+            "fillOpacity": 1,
+            "lineOpacity": 1,
+            "hollow": false,
+            "color": "#F77622",
+            "renderMode": "Rectangle",
+            "showName": true,
+            "tilesetId": null,
+            "tileRenderMode": "FitInside",
+            "tileRect": null,
+            "uiTileRect": null,
+            "nineSliceBorders": [],
+            "maxCount": 0,
+            "limitScope": "PerLevel",
+            "limitBehavior": "MoveLastOne",
+            "pivotX": 0,
+            "pivotY": 0,
+            "fieldDefs": [{
+                "identifier": "Ultra_Wormhole",
+                "doc": null,
+                "__type": "LocalEnum.Ultra_Wormhole",
+                "uid": 86,
+                "type": "F_Enum(83)",
+                "isArray": false,
+                "canBeNull": false,
+                "arrayMinLength": null,
+                "arrayMaxLength": null,
+                "editorDisplayMode": "ValueOnly",
+                "editorDisplayScale": 1,
+                "editorDisplayPos": "Above",
+                "editorLinkStyle": "StraightArrow",
+                "editorDisplayColor": null,
+                "editorAlwaysShow": false,
+                "editorShowInWorld": true,
+                "editorCutLongValues": true,
+                "editorTextSuffix": null,
+                "editorTextPrefix": null,
+                "useForSmartColor": true,
+                "exportToToc": false,
+                "searchable": false,
+                "min": null,
+                "max": null,
+                "regex": null,
+                "acceptFileTypes": null,
+                "defaultOverride": null,
+                "textLanguageMode": null,
+                "symmetricalRef": false,
+                "autoChainRef": true,
+                "allowOutOfLevelRef": true,
+                "allowedRefs": "OnlySame",
+                "allowedRefsEntityUid": null,
+                "allowedRefTags": [],
+                "tilesetUid": null
+            }]
+        }, {
+            "identifier": "Paradox_Anchors",
+            "uid": 89,
+            "tags": [],
+            "exportToToc": false,
+            "allowOutOfBounds": false,
+            "doc": null,
+            "width": 16,
+            "height": 16,
+            "resizableX": false,
+            "resizableY": false,
+            "minWidth": null,
+            "maxWidth": null,
+            "minHeight": null,
+            "maxHeight": null,
+            "keepAspectRatio": false,
+            "tileOpacity": 1,
+            "fillOpacity": 1,
+            "lineOpacity": 1,
+            "hollow": false,
+            "color": "#63C74D",
+            "renderMode": "Rectangle",
+            "showName": true,
+            "tilesetId": null,
+            "tileRenderMode": "FitInside",
+            "tileRect": null,
+            "uiTileRect": null,
+            "nineSliceBorders": [],
+            "maxCount": 0,
+            "limitScope": "PerLevel",
+            "limitBehavior": "MoveLastOne",
+            "pivotX": 0,
+            "pivotY": 0,
+            "fieldDefs": [{
+                "identifier": "Paradox_Anchors",
+                "doc": null,
+                "__type": "LocalEnum.Paradox_Anchors",
+                "uid": 91,
+                "type": "F_Enum(87)",
+                "isArray": false,
+                "canBeNull": false,
+                "arrayMinLength": null,
+                "arrayMaxLength": null,
+                "editorDisplayMode": "ValueOnly",
+                "editorDisplayScale": 1,
+                "editorDisplayPos": "Above",
+                "editorLinkStyle": "StraightArrow",
+                "editorDisplayColor": null,
+                "editorAlwaysShow": false,
+                "editorShowInWorld": true,
+                "editorCutLongValues": true,
+                "editorTextSuffix": null,
+                "editorTextPrefix": null,
+                "useForSmartColor": true,
+                "exportToToc": false,
+                "searchable": false,
+                "min": null,
+                "max": null,
+                "regex": null,
+                "acceptFileTypes": null,
+                "defaultOverride": null,
+                "textLanguageMode": null,
+                "symmetricalRef": false,
+                "autoChainRef": true,
+                "allowOutOfLevelRef": true,
+                "allowedRefs": "OnlySame",
+                "allowedRefsEntityUid": null,
+                "allowedRefTags": [],
+                "tilesetUid": null
+            }]
         }],
         "tilesets": [{
             "__cWid": 32,
@@ -2761,6 +2969,94 @@
             "externalRelPath": null,
             "externalFileChecksum": null,
             "tags": []
+        }, {
+            "identifier": "Ultra_Wormhole",
+            "uid": 83,
+            "values": [{
+                "id": "UB01_Nihilego",
+                "tileRect": null,
+                "color": 15389866
+            }, {
+                "id": "UB02_Buzzwole",
+                "tileRect": null,
+                "color": 12470831
+            }, {
+                "id": "UB02_Pheromosa",
+                "tileRect": null,
+                "color": 14120515
+            }, {
+                "id": "UB03_Xurkitree",
+                "tileRect": null,
+                "color": 14984818
+            }, {
+                "id": "UB04_Celesteela",
+                "tileRect": null,
+                "color": 7552569
+            }, {
+                "id": "UB04_Kartana",
+                "tileRect": null,
+                "color": 4073265
+            }, {
+                "id": "UB05_Guzzlord",
+                "tileRect": null,
+                "color": 16690740
+            }, {
+                "id": "UB_Stakataka",
+                "tileRect": null,
+                "color": 16705377
+            }, {
+                "id": "UB_Blacephalon",
+                "tileRect": null,
+                "color": 6539085
+            }, {
+                "id": "UB_Poipole",
+                "tileRect": null,
+                "color": 4098376
+            }],
+            "iconTilesetUid": null,
+            "externalRelPath": null,
+            "externalFileChecksum": null,
+            "tags": []
+        }, {
+            "identifier": "Paradox_Anchors",
+            "uid": 87,
+            "values": [{
+                "id": "POINT_PAST_01",
+                "tileRect": null,
+                "color": 12470831
+            }, {
+                "id": "POINT_PAST_02",
+                "tileRect": null,
+                "color": 14120515
+            }, {
+                "id": "POINT_PAST_03",
+                "tileRect": null,
+                "color": 15389866
+            }, {
+                "id": "POINT_PAST_04",
+                "tileRect": null,
+                "color": 14984818
+            }, {
+                "id": "POINT_FUTR_01",
+                "tileRect": null,
+                "color": 7552569
+            }, {
+                "id": "POINT_FUTR_02",
+                "tileRect": null,
+                "color": 4073265
+            }, {
+                "id": "POINT_FUTR_03",
+                "tileRect": null,
+                "color": 16690740
+            }, {
+                "id": "POINT_FUTR_04",
+                "tileRect": null,
+                "color": 16705377
+            }],
+            "iconTilesetUid": null,
+            "externalRelPath": null,
+            "externalFileChecksum": null,
+            "tags": []
         }],
         "externalEnums": [],
         "levelFields": []
@@ -2786,6 +3082,529 @@
         "externalRelPath": null,
         "fieldInstances": [],
         "layerInstances": [{
+            "__identifier": "Ultra_Wormhole",
+            "__type": "Entities",
+            "__cWid": 52,
+            "__cHei": 52,
+            "__gridSize": 16,
+            "__opacity": 1,
+            "__pxTotalOffsetX": 0,
+            "__pxTotalOffsetY": 0,
+            "__tilesetDefUid": null,
+            "__tilesetRelPath": null,
+            "iid": "7ad01990-d380-11f0-8c64-93386480cae2",
+            "levelId": 0,
+            "layerDefUid": 84,
+            "pxOffsetX": 0,
+            "pxOffsetY": 0,
+            "visible": false,
+            "optionalRules": [],
+            "intGridCsv": [],
+            "autoLayerTiles": [],
+            "seed": 99507,
+            "overrideTilesetUid": null,
+            "gridTiles": [],
+            "entityInstances": [{
+                "__identifier": "Ultra_Wormhole",
+                "__grid": [26, 26],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#EAD4AA",
+                "iid": "926871b0-d380-11f0-8c64-8f4643ed2010",
+                "width": 16,
+                "height": 16,
+                "defUid": 85,
+                "px": [416, 416],
+                "fieldInstances": [{
+                    "__identifier": "Ultra_Wormhole",
+                    "__type": "LocalEnum.Ultra_Wormhole",
+                    "__value": "UB01_Nihilego",
+                    "__tile": null,
+                    "defUid": 86,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["UB01_Nihilego"]
+                    }]
+                }],
+                "__worldX": 416,
+                "__worldY": 416
+            }, {
+                "__identifier": "Ultra_Wormhole",
+                "__grid": [20, 13],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#BE4A2F",
+                "iid": "a00a4820-d380-11f0-8c64-a3c44b3d57ad",
+                "width": 16,
+                "height": 16,
+                "defUid": 85,
+                "px": [320, 208],
+                "fieldInstances": [{
+                    "__identifier": "Ultra_Wormhole",
+                    "__type": "LocalEnum.Ultra_Wormhole",
+                    "__value": "UB02_Buzzwole",
+                    "__tile": null,
+                    "defUid": 86,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["UB02_Buzzwole"]
+                    }]
+                }],
+                "__worldX": 320,
+                "__worldY": 208
+            }, {
+                "__identifier": "Ultra_Wormhole",
+                "__grid": [6, 43],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#D77643",
+                "iid": "a8cfc3e0-d380-11f0-8c64-47735a147522",
+                "width": 16,
+                "height": 16,
+                "defUid": 85,
+                "px": [96, 688],
+                "fieldInstances": [{
+                    "__identifier": "Ultra_Wormhole",
+                    "__type": "LocalEnum.Ultra_Wormhole",
+                    "__value": "UB02_Pheromosa",
+                    "__tile": null,
+                    "defUid": 86,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["UB02_Pheromosa"]
+                    }]
+                }],
+                "__worldX": 96,
+                "__worldY": 688
+            }, {
+                "__identifier": "Ultra_Wormhole",
+                "__grid": [26, 26],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#EAD4AA",
+                "iid": "aaf7acf0-d380-11f0-8c64-0dabf06361b6",
+                "width": 16,
+                "height": 16,
+                "defUid": 85,
+                "px": [416, 416],
+                "fieldInstances": [{
+                    "__identifier": "Ultra_Wormhole",
+                    "__type": "LocalEnum.Ultra_Wormhole",
+                    "__value": "UB01_Nihilego",
+                    "__tile": null,
+                    "defUid": 86,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["UB01_Nihilego"]
+                    }]
+                }],
+                "__worldX": 416,
+                "__worldY": 416
+            }, {
+                "__identifier": "Ultra_Wormhole",
+                "__grid": [39, 37],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#E4A672",
+                "iid": "b0088520-d380-11f0-8c64-b99baf605f86",
+                "width": 16,
+                "height": 16,
+                "defUid": 85,
+                "px": [624, 592],
+                "fieldInstances": [{
+                    "__identifier": "Ultra_Wormhole",
+                    "__type": "LocalEnum.Ultra_Wormhole",
+                    "__value": "UB03_Xurkitree",
+                    "__tile": null,
+                    "defUid": 86,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["UB03_Xurkitree"]
+                    }]
+                }],
+                "__worldX": 624,
+                "__worldY": 592
+            }, {
+                "__identifier": "Ultra_Wormhole",
+                "__grid": [13, 13],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#733E39",
+                "iid": "be6bfde0-d380-11f0-8c64-79953f127888",
+                "width": 16,
+                "height": 16,
+                "defUid": 85,
+                "px": [208, 208],
+                "fieldInstances": [{
+                    "__identifier": "Ultra_Wormhole",
+                    "__type": "LocalEnum.Ultra_Wormhole",
+                    "__value": "UB04_Celesteela",
+                    "__tile": null,
+                    "defUid": 86,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["UB04_Celesteela"]
+                    }]
+                }],
+                "__worldX": 208,
+                "__worldY": 208
+            }, {
+                "__identifier": "Ultra_Wormhole",
+                "__grid": [36, 30],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#733E39",
+                "iid": "c0fd3010-d380-11f0-8c64-598689d557c4",
+                "width": 16,
+                "height": 16,
+                "defUid": 85,
+                "px": [576, 480],
+                "fieldInstances": [{
+                    "__identifier": "Ultra_Wormhole",
+                    "__type": "LocalEnum.Ultra_Wormhole",
+                    "__value": "UB04_Celesteela",
+                    "__tile": null,
+                    "defUid": 86,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["UB04_Celesteela"]
+                    }]
+                }],
+                "__worldX": 576,
+                "__worldY": 480
+            }, {
+                "__identifier": "Ultra_Wormhole",
+                "__grid": [21, 38],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#3E2731",
+                "iid": "dadc43e0-d380-11f0-8c64-218cc660a631",
+                "width": 16,
+                "height": 16,
+                "defUid": 85,
+                "px": [336, 608],
+                "fieldInstances": [{
+                    "__identifier": "Ultra_Wormhole",
+                    "__type": "LocalEnum.Ultra_Wormhole",
+                    "__value": "UB04_Kartana",
+                    "__tile": null,
+                    "defUid": 86,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["UB04_Kartana"]
+                    }]
+                }],
+                "__worldX": 336,
+                "__worldY": 608
+            }, {
+                "__identifier": "Ultra_Wormhole",
+                "__grid": [41, 21],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#FEAE34",
+                "iid": "e8ff0a20-d380-11f0-8c64-1bb1e974f4f1",
+                "width": 16,
+                "height": 16,
+                "defUid": 85,
+                "px": [656, 336],
+                "fieldInstances": [{
+                    "__identifier": "Ultra_Wormhole",
+                    "__type": "LocalEnum.Ultra_Wormhole",
+                    "__value": "UB05_Guzzlord",
+                    "__tile": null,
+                    "defUid": 86,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["UB05_Guzzlord"]
+                    }]
+                }],
+                "__worldX": 656,
+                "__worldY": 336
+            }, {
+                "__identifier": "Ultra_Wormhole",
+                "__grid": [41, 9],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#FEE761",
+                "iid": "f64971c0-d380-11f0-8c64-459269fbc151",
+                "width": 16,
+                "height": 16,
+                "defUid": 85,
+                "px": [656, 144],
+                "fieldInstances": [{
+                    "__identifier": "Ultra_Wormhole",
+                    "__type": "LocalEnum.Ultra_Wormhole",
+                    "__value": "UB_Stakataka",
+                    "__tile": null,
+                    "defUid": 86,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["UB_Stakataka"]
+                    }]
+                }],
+                "__worldX": 656,
+                "__worldY": 144
+            }, {
+                "__identifier": "Ultra_Wormhole",
+                "__grid": [31, 20],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#3E8948",
+                "iid": "ff7c0730-d380-11f0-8c64-dbeccb4f2b5d",
+                "width": 16,
+                "height": 16,
+                "defUid": 85,
+                "px": [496, 320],
+                "fieldInstances": [{
+                    "__identifier": "Ultra_Wormhole",
+                    "__type": "LocalEnum.Ultra_Wormhole",
+                    "__value": "UB_Poipole",
+                    "__tile": null,
+                    "defUid": 86,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["UB_Poipole"]
+                    }]
+                }],
+                "__worldX": 496,
+                "__worldY": 320
+            }]
+        }, {
+            "__identifier": "Paradox_Anchors",
+            "__type": "Entities",
+            "__cWid": 52,
+            "__cHei": 52,
+            "__gridSize": 16,
+            "__opacity": 1,
+            "__pxTotalOffsetX": 0,
+            "__pxTotalOffsetY": 0,
+            "__tilesetDefUid": null,
+            "__tilesetRelPath": null,
+            "iid": "fc6faa30-d380-11f0-8c64-b71338c2f663",
+            "levelId": 0,
+            "layerDefUid": 88,
+            "pxOffsetX": 0,
+            "pxOffsetY": 0,
+            "visible": true,
+            "optionalRules": [],
+            "intGridCsv": [],
+            "autoLayerTiles": [],
+            "seed": 9011982,
+            "overrideTilesetUid": null,
+            "gridTiles": [],
+            "entityInstances": [{
+                "__identifier": "Paradox_Anchors",
+                "__grid": [13, 34],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#BE4A2F",
+                "iid": "3433a2a0-d380-11f0-8c64-ad3095cda17e",
+                "width": 16,
+                "height": 16,
+                "defUid": 89,
+                "px": [208, 544],
+                "fieldInstances": [{
+                    "__identifier": "Paradox_Anchors",
+                    "__type": "LocalEnum.Paradox_Anchors",
+                    "__value": "POINT_PAST_01",
+                    "__tile": null,
+                    "defUid": 91,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["POINT_PAST_01"]
+                    }]
+                }],
+                "__worldX": 208,
+                "__worldY": 544
+            }, {
+                "__identifier": "Paradox_Anchors",
+                "__grid": [11, 40],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#D77643",
+                "iid": "3d2dc2f0-d380-11f0-8c64-9b5273c50317",
+                "width": 16,
+                "height": 16,
+                "defUid": 89,
+                "px": [176, 640],
+                "fieldInstances": [{
+                    "__identifier": "Paradox_Anchors",
+                    "__type": "LocalEnum.Paradox_Anchors",
+                    "__value": "POINT_PAST_02",
+                    "__tile": null,
+                    "defUid": 91,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["POINT_PAST_02"]
+                    }]
+                }],
+                "__worldX": 176,
+                "__worldY": 640
+            }, {
+                "__identifier": "Paradox_Anchors",
+                "__grid": [14, 7],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#EAD4AA",
+                "iid": "4c22cd50-d380-11f0-8c64-89dc2f5cc05b",
+                "width": 16,
+                "height": 16,
+                "defUid": 89,
+                "px": [224, 112],
+                "fieldInstances": [{
+                    "__identifier": "Paradox_Anchors",
+                    "__type": "LocalEnum.Paradox_Anchors",
+                    "__value": "POINT_PAST_03",
+                    "__tile": null,
+                    "defUid": 91,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["POINT_PAST_03"]
+                    }]
+                }],
+                "__worldX": 224,
+                "__worldY": 112
+            }, {
+                "__identifier": "Paradox_Anchors",
+                "__grid": [6, 11],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#E4A672",
+                "iid": "55235640-d380-11f0-8c64-795c68983f7f",
+                "width": 16,
+                "height": 16,
+                "defUid": 89,
+                "px": [96, 176],
+                "fieldInstances": [{
+                    "__identifier": "Paradox_Anchors",
+                    "__type": "LocalEnum.Paradox_Anchors",
+                    "__value": "POINT_PAST_04",
+                    "__tile": null,
+                    "defUid": 91,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["POINT_PAST_04"]
+                    }]
+                }],
+                "__worldX": 96,
+                "__worldY": 176
+            }, {
+                "__identifier": "Paradox_Anchors",
+                "__grid": [38, 39],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#733E39",
+                "iid": "74dab0f0-d380-11f0-8c64-a924715f47a2",
+                "width": 16,
+                "height": 16,
+                "defUid": 89,
+                "px": [608, 624],
+                "fieldInstances": [{
+                    "__identifier": "Paradox_Anchors",
+                    "__type": "LocalEnum.Paradox_Anchors",
+                    "__value": "POINT_FUTR_01",
+                    "__tile": null,
+                    "defUid": 91,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["POINT_FUTR_01"]
+                    }]
+                }],
+                "__worldX": 608,
+                "__worldY": 624
+            }, {
+                "__identifier": "Paradox_Anchors",
+                "__grid": [46, 32],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#3E2731",
+                "iid": "7f3dd720-d380-11f0-8c64-1fc96beab770",
+                "width": 16,
+                "height": 16,
+                "defUid": 89,
+                "px": [736, 512],
+                "fieldInstances": [{
+                    "__identifier": "Paradox_Anchors",
+                    "__type": "LocalEnum.Paradox_Anchors",
+                    "__value": "POINT_FUTR_02",
+                    "__tile": null,
+                    "defUid": 91,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["POINT_FUTR_02"]
+                    }]
+                }],
+                "__worldX": 736,
+                "__worldY": 512
+            }, {
+                "__identifier": "Paradox_Anchors",
+                "__grid": [45, 7],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#FEAE34",
+                "iid": "869bfab0-d380-11f0-8c64-bd11dbb2643d",
+                "width": 16,
+                "height": 16,
+                "defUid": 89,
+                "px": [720, 112],
+                "fieldInstances": [{
+                    "__identifier": "Paradox_Anchors",
+                    "__type": "LocalEnum.Paradox_Anchors",
+                    "__value": "POINT_FUTR_03",
+                    "__tile": null,
+                    "defUid": 91,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["POINT_FUTR_03"]
+                    }]
+                }],
+                "__worldX": 720,
+                "__worldY": 112
+            }, {
+                "__identifier": "Paradox_Anchors",
+                "__grid": [30, 13],
+                "__pivot": [0, 0],
+                "__tags": [],
+                "__tile": null,
+                "__smartColor": "#FEE761",
+                "iid": "938863d0-d380-11f0-8c64-7521e5550b20",
+                "width": 16,
+                "height": 16,
+                "defUid": 89,
+                "px": [480, 208],
+                "fieldInstances": [{
+                    "__identifier": "Paradox_Anchors",
+                    "__type": "LocalEnum.Paradox_Anchors",
+                    "__value": "POINT_FUTR_04",
+                    "__tile": null,
+                    "defUid": 91,
+                    "realEditorValues": [{
+                        "id": "V_String",
+                        "params": ["POINT_FUTR_04"]
+                    }]
+                }],
+                "__worldX": 480,
+                "__worldY": 208
+            }]
+        }, {
             "__identifier": "Place_Anchor",
             "__type": "Entities",
             "__cWid": 52,
@@ -5174,7 +5993,7 @@
             "layerDefUid": 59,
             "pxOffsetX": 0,
             "pxOffsetY": 0,
-            "visible": true,
+            "visible": false,
             "optionalRules": [],
             "intGridCsv": [],
             "autoLayerTiles": [],
