@@ -1316,7 +1316,18 @@ function resizeCanvas() {
     const h = window.innerHeight || document.documentElement.clientHeight || 600;
     canvas.width = Math.max(w, 100); 
     canvas.height = Math.max(h, 100); 
-    limitCameraBounds();
+    
+    // 重新计算缩放和相机位置
+    if (levelData && levelData.pxWid) {
+        centerCamera();
+    }
+    
+    // 立即清除并重绘，避免残影
+    if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    console.log('[MAP] Canvas 已调整:', w, 'x', h);
 } 
 function drawStatusText(t) {console.log(t);}
 function hexToRgba(hex,a) {
