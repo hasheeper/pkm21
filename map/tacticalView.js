@@ -828,7 +828,8 @@ const TacticalSystem = {
             let iconBase = 256;
             let customTint = null;
 
-            if (t.includes('Sand') || t === 'Coastal_Sand' || t === 'Desert_Sand') targetIcon = SURF_Icons.SAND;
+            if (t === 'Desert_Sand') targetIcon = SURF_Icons.CACTUS;
+            else if (t.includes('Sand') || t === 'Coastal_Sand') targetIcon = SURF_Icons.SAND;
             else if (t === 'CACTUS') targetIcon = SURF_Icons.CACTUS;
             else if (t.includes('Forest') || t === 'Deep_Jungle') targetIcon = SURF_Icons.TREE;
             else if (t === 'Flower_Field') targetIcon = SURF_Icons.FLOWER;
