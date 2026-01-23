@@ -2,6 +2,502 @@
    TRAINER DATABASE (NPC立绘与配置)
    ============================================================ */
 
+/* ============================================================
+   MOVE POOL SYSTEM (技能池系统 - 状态快照模式)
+   基于当前等级获取所有可用技能，而非监听升级事件
+   ============================================================ */
+
+// 技能池缓存 (避免重复请求 PokeAPI)
+const movePoolCache = {};
+
+/**
+ * 从 PokeAPI 获取宝可梦的技能池
+ * @param {string} species - 宝可梦种类名 (如 "charizard")
+ * @param {number} currentLv - 当前等级
+ * @returns {Promise<Array>} - 可用技能列表 [{name, level, displayName}]
+ */
+async function fetchMovePool(species, currentLv) {
+    if (!species) return [];
+    
+    const normalizedSpecies = species.toLowerCase().replace(/\s+/g, '-');
+    const cacheKey = `${normalizedSpecies}_${currentLv}`;
+    
+    // 检查缓存
+    if (movePoolCache[cacheKey]) {
+        console.log('[MOVE_POOL] 使用缓存:', cacheKey);
+        return movePoolCache[cacheKey];
+    }
+    
+    try {
+        console.log('[MOVE_POOL] 请求 PokeAPI:', normalizedSpecies);
+        const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${normalizedSpecies}`);
+        
+        if (!response.ok) {
+            console.warn('[MOVE_POOL] API 请求失败:', response.status);
+            return [];
+        }
+        
+        const data = await response.json();
+        const moves = data.moves || [];
+        
+        // 过滤: level-up 且 level <= currentLv
+        const availableMoves = [];
+        
+        for (const moveEntry of moves) {
+            const moveName = moveEntry.move.name;
+            
+            // 遍历版本组详情，找到 level-up 方式
+            for (const vgd of moveEntry.version_group_details) {
+                if (vgd.move_learn_method.name === 'level-up' && vgd.level_learned_at <= currentLv) {
+                    // 避免重复添加同一招式
+                    if (!availableMoves.find(m => m.name === moveName)) {
+                        availableMoves.push({
+                            name: moveName,
+                            level: vgd.level_learned_at,
+                            displayName: translateMoveName(moveName.replace(/-/g, ' '))
+                        });
+                    }
+                    break;
+                }
+            }
+        }
+        
+        // 按学习等级排序
+        availableMoves.sort((a, b) => a.level - b.level);
+        
+        // 缓存结果
+        movePoolCache[cacheKey] = availableMoves;
+        console.log('[MOVE_POOL] 获取到', availableMoves.length, '个可用技能');
+        
+        return availableMoves;
+    } catch (e) {
+        console.error('[MOVE_POOL] 获取技能池失败:', e);
+        return [];
+    }
+}
+
+/**
+ * 打开技能调整面板
+ * @param {string} slotKey - 槽位键 (如 "slot1")
+ */
+window.openMovePoolPanel = async function(slotKey) {
+    const pkm = db?.player?.party?.[slotKey];
+    if (!pkm || !pkm.name) {
+        console.warn('[MOVE_POOL] 无效的槽位:', slotKey);
+        return;
+    }
+    
+    const species = pkm.species || pkm.name;
+    const currentLv = pkm.lv || 1;
+    const currentMoves = pkm.moves || {};
+    
+    // 显示加载状态
+    showMovePoolModal(slotKey, species, currentLv, currentMoves, null, true);
+    
+    // 获取技能池
+    const movePool = await fetchMovePool(species, currentLv);
+    
+    // 更新面板显示
+    showMovePoolModal(slotKey, species, currentLv, currentMoves, movePool, false);
+};
+
+/**
+ * 显示技能池模态框
+ */
+function showMovePoolModal(slotKey, species, lv, currentMoves, movePool, isLoading) {
+    // 移除已存在的面板
+    const existingPanel = document.getElementById('move-pool-modal');
+    if (existingPanel) existingPanel.remove();
+    
+    const displayName = translatePokemonNameApp(species);
+    
+    // 当前技能列表
+    const moveKeys = ['move1', 'move2', 'move3', 'move4'];
+    const currentMoveNames = moveKeys.map(k => currentMoves[k] || null);
+    
+    let currentMovesHtml = currentMoveNames.map((moveName, idx) => {
+        const displayMove = moveName ? translateMoveName(moveName.replace(/-/g, ' ')) : '—';
+        const isEmpty = !moveName;
+        return `
+            <div class="mpm-current-move ${isEmpty ? 'empty' : ''}" data-slot="${idx}" data-move="${moveName || ''}">
+                <span class="mpm-move-idx">${idx + 1}</span>
+                <span class="mpm-move-name">${displayMove}</span>
+                ${!isEmpty ? `<button class="mpm-remove-btn" onclick="removeMoveFromSlot('${slotKey}', ${idx})">✕</button>` : ''}
+            </div>
+        `;
+    }).join('');
+    
+    // 可用技能池
+    let poolHtml = '';
+    if (isLoading) {
+        poolHtml = '<div class="mpm-loading"><span class="mpm-spinner"></span>Loading Move Pool...</div>';
+    } else if (!movePool || movePool.length === 0) {
+        poolHtml = '<div class="mpm-empty">No available moves found.</div>';
+    } else {
+        // 过滤掉已装备的技能
+        const equippedMoves = currentMoveNames.filter(Boolean).map(m => m.toLowerCase());
+        const unequippedMoves = movePool.filter(m => !equippedMoves.includes(m.name.toLowerCase()));
+        
+        poolHtml = unequippedMoves.map(move => `
+            <div class="mpm-pool-move" onclick="selectMoveFromPool('${slotKey}', '${move.name}')">
+                <span class="mpm-pool-lv">Lv.${move.level}</span>
+                <span class="mpm-pool-name">${move.displayName}</span>
+            </div>
+        `).join('');
+        
+        if (unequippedMoves.length === 0) {
+            poolHtml = '<div class="mpm-empty">All available moves are equipped.</div>';
+        }
+    }
+    
+    const modalHtml = `
+    <div id="move-pool-modal" class="mpm-overlay" onclick="closeMovePoolModal(event)">
+        <div class="mpm-container" onclick="event.stopPropagation()">
+            <div class="mpm-header">
+                <div class="mpm-title">
+                    <span class="mpm-species">${displayName}</span>
+                    <span class="mpm-lv">Lv.${lv}</span>
+                </div>
+                <button class="mpm-close" onclick="closeMovePoolModal()">✕</button>
+            </div>
+            <div class="mpm-body">
+                <div class="mpm-section mpm-current">
+                    <div class="mpm-section-title">EQUIPPED MOVES</div>
+                    <div class="mpm-current-list">
+                        ${currentMovesHtml}
+                    </div>
+                </div>
+                <div class="mpm-section mpm-pool">
+                    <div class="mpm-section-title">AVAILABLE POOL <small>(Lv.1 ~ Lv.${lv})</small></div>
+                    <div class="mpm-pool-list">
+                        ${poolHtml}
+                    </div>
+                </div>
+            </div>
+            <div class="mpm-footer">
+                <button class="mpm-save-btn" onclick="saveMoveChanges('${slotKey}')">SAVE CHANGES</button>
+            </div>
+        </div>
+    </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+/**
+ * 关闭技能池面板
+ */
+window.closeMovePoolModal = function(event) {
+    if (event && event.target.id !== 'move-pool-modal') return;
+    const modal = document.getElementById('move-pool-modal');
+    if (modal) modal.remove();
+};
+
+// 临时存储待保存的技能变更
+let pendingMoveChanges = {};
+
+/**
+ * 将连字符格式转换为首字母大写空格格式
+ * 例如: "dragon-claw" -> "Dragon Claw"
+ */
+function normalizeMoveName(moveName) {
+    if (!moveName) return null;
+    return moveName
+        .replace(/-/g, ' ')
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+}
+
+/**
+ * 从技能池选择技能
+ */
+window.selectMoveFromPool = function(slotKey, moveName) {
+    // 初始化待保存变更
+    if (!pendingMoveChanges[slotKey]) {
+        const pkm = db?.player?.party?.[slotKey];
+        pendingMoveChanges[slotKey] = { ...pkm?.moves };
+    }
+    
+    // 找到第一个空槽位
+    const moveKeys = ['move1', 'move2', 'move3', 'move4'];
+    let targetSlot = null;
+    
+    for (const key of moveKeys) {
+        if (!pendingMoveChanges[slotKey][key]) {
+            targetSlot = key;
+            break;
+        }
+    }
+    
+    if (!targetSlot) {
+        // 所有槽位已满，提示用户先移除一个
+        showMovePoolNotification('All move slots are full. Remove a move first.', 'warning');
+        return;
+    }
+    
+    // 设置技能（转换为首字母大写空格格式）
+    pendingMoveChanges[slotKey][targetSlot] = normalizeMoveName(moveName);
+    
+    // 刷新面板
+    refreshMovePoolPanel(slotKey);
+};
+
+/**
+ * 从槽位移除技能
+ */
+window.removeMoveFromSlot = function(slotKey, slotIdx) {
+    // 初始化待保存变更
+    if (!pendingMoveChanges[slotKey]) {
+        const pkm = db?.player?.party?.[slotKey];
+        pendingMoveChanges[slotKey] = { ...pkm?.moves };
+    }
+    
+    const moveKey = `move${slotIdx + 1}`;
+    pendingMoveChanges[slotKey][moveKey] = null;
+    
+    // 刷新面板
+    refreshMovePoolPanel(slotKey);
+};
+
+/**
+ * 刷新技能池面板
+ */
+async function refreshMovePoolPanel(slotKey) {
+    const pkm = db?.player?.party?.[slotKey];
+    if (!pkm) return;
+    
+    const species = pkm.species || pkm.name;
+    const currentLv = pkm.lv || 1;
+    const currentMoves = pendingMoveChanges[slotKey] || pkm.moves || {};
+    
+    // 从缓存获取技能池
+    const movePool = await fetchMovePool(species, currentLv);
+    
+    showMovePoolModal(slotKey, species, currentLv, currentMoves, movePool, false);
+}
+
+/**
+ * 保存技能变更到 ERA
+ */
+window.saveMoveChanges = async function(slotKey) {
+    const changes = pendingMoveChanges[slotKey];
+    if (!changes) {
+        closeMovePoolModal();
+        return;
+    }
+    
+    const pkm = db?.player?.party?.[slotKey];
+    const originalMoves = pkm?.moves || {};
+    
+    // 计算变化的技能（只记录真正改变的）
+    const changedMoves = {};
+    const moveKeys = ['move1', 'move2', 'move3', 'move4'];
+    for (const key of moveKeys) {
+        const oldMove = originalMoves[key] || null;
+        const newMove = changes[key] || null;
+        if (oldMove !== newMove) {
+            changedMoves[key] = { from: oldMove, to: newMove };
+        }
+    }
+    
+    // 更新本地 db
+    if (pkm) {
+        db.player.party[slotKey].moves = { ...changes };
+    }
+    
+    const species = pkm?.species || pkm?.name || 'pokemon';
+    const displayName = translatePokemonNameApp(species);
+    
+    // 生成 VariableEdit XML（只包含变化的技能）
+    const variableEditXml = generateMoveVariableEdit(slotKey, changes, pkm, changedMoves);
+    
+    // 生成 AI 演绎提示词（只描述变化的技能）
+    const aiPrompt = generateMoveChangeNarrative(slotKey, changes, pkm, changedMoves);
+    
+    // 合并内容：VariableEdit + AI提示词
+    const fullContent = `${variableEditXml}\n\n${aiPrompt}`;
+    
+    // 复制到剪贴板
+    try {
+        await navigator.clipboard.writeText(fullContent);
+        console.log('[MOVE_POOL] ✓ 已复制到剪贴板');
+    } catch (e) {
+        console.warn('[MOVE_POOL] 剪贴板复制失败，尝试降级方案:', e);
+        fallbackCopyToClipboard(fullContent);
+    }
+    
+    // 发送到酒馆
+    sendMoveChangeToTavern(slotKey, changes);
+    
+    // 清理临时变更
+    delete pendingMoveChanges[slotKey];
+    
+    // 关闭面板
+    closeMovePoolModal();
+    
+    // 刷新 Party 列表
+    renderPartyList();
+    
+    // 显示成功通知（包含复制提示）
+    showMovePoolNotification(`${displayName} 技能已更新！VariableEdit 已复制到剪贴板`, 'success');
+};
+
+/**
+ * 生成 VariableEdit XML 格式（只包含变化的技能）
+ */
+function generateMoveVariableEdit(slotKey, moves, pkm, changedMoves) {
+    // 只输出变化的技能
+    const changedKeys = Object.keys(changedMoves || {});
+    
+    if (changedKeys.length === 0) {
+        return `<VariableEdit>\n// 无技能变化\n</VariableEdit>`;
+    }
+    
+    // 只包含变化的技能槽
+    const movesObj = {};
+    for (const key of changedKeys) {
+        movesObj[key] = moves[key] || null;
+    }
+    
+    // 构建嵌套结构
+    const editPayload = {
+        player: {
+            party: {
+                [slotKey]: {
+                    moves: movesObj
+                }
+            }
+        }
+    };
+    
+    return `<VariableEdit>
+${JSON.stringify(editPayload, null, 2)}
+</VariableEdit>`;
+}
+
+/**
+ * 生成 AI 演绎提示词（只描述变化的技能）
+ */
+function generateMoveChangeNarrative(slotKey, moves, pkm, changedMoves) {
+    const species = pkm?.species || pkm?.name || 'Pokemon';
+    const displayName = pkm?.nickname || translatePokemonNameApp(species);
+    const lv = pkm?.lv || '?';
+    
+    const changedKeys = Object.keys(changedMoves || {});
+    
+    if (changedKeys.length === 0) {
+        return `[System Narrative Hint]\n${displayName} 的技能配置未发生变化。`;
+    }
+    
+    // 构建变化描述
+    const changeDescriptions = changedKeys.map(key => {
+        const change = changedMoves[key];
+        const fromName = change.from ? translateMoveName(change.from.replace(/-/g, ' ')) : '空槽';
+        const toName = change.to ? translateMoveName(change.to.replace(/-/g, ' ')) : '空槽';
+        return `${fromName} → ${toName}`;
+    });
+    
+    const changeListStr = changeDescriptions.join('、');
+    
+    return `[System Narrative Hint]
+${displayName} (Lv.${lv}) 调整了部分技能配置。
+变化: ${changeListStr}
+(请在后续叙事中自然地体现这一变化)`;
+}
+
+/**
+ * 降级剪贴板复制方案
+ */
+function fallbackCopyToClipboard(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+        document.execCommand('copy');
+    } catch (e) {
+        console.error('[MOVE_POOL] 降级复制也失败:', e);
+    }
+    document.body.removeChild(textarea);
+}
+
+/**
+ * 发送技能变更到酒馆
+ */
+function sendMoveChangeToTavern(slotKey, moves) {
+    const pkm = db?.player?.party?.[slotKey];
+    const displayName = pkm ? translatePokemonNameApp(pkm.species || pkm.name) : 'Pokemon';
+    
+    // 构建技能列表文本
+    const moveList = ['move1', 'move2', 'move3', 'move4']
+        .map(k => moves[k] ? translateMoveName(moves[k].replace(/-/g, ' ')) : null)
+        .filter(Boolean)
+        .join(' | ');
+    
+    // 通过 postMessage 发送 VariableEdit
+    const parentWindow = window.parent || window;
+    
+    // 发送 ERA 变量更新
+    parentWindow.postMessage({
+        type: 'PKM_UPDATE_MOVES',
+        slotKey: slotKey,
+        moves: moves
+    }, '*');
+    
+    // 发送系统消息提示 AI
+    parentWindow.postMessage({
+        type: 'PKM_INJECT_SYSTEM_MSG',
+        content: `[System: ${displayName}'s moveset was adjusted via Pokedex. New Moves: ${moveList}. (Narrative hint: The Pokemon refined its combat style during the break.)]`
+    }, '*');
+    
+    console.log('[MOVE_POOL] 技能变更已发送:', slotKey, moves);
+}
+
+/**
+ * 显示技能池通知
+ */
+function showMovePoolNotification(message, type = 'info') {
+    const colors = {
+        success: '#00b894',
+        warning: '#fdcb6e',
+        error: '#ff7675',
+        info: '#74b9ff'
+    };
+    
+    const notif = document.createElement('div');
+    notif.className = 'mpm-notification';
+    notif.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${colors[type]};
+        color: #fff;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 10001;
+        animation: mpmNotifIn 0.3s ease;
+    `;
+    notif.textContent = message;
+    document.body.appendChild(notif);
+    
+    setTimeout(() => {
+        notif.style.animation = 'mpmNotifOut 0.3s ease forwards';
+        setTimeout(() => notif.remove(), 300);
+    }, 2000);
+}
+
+// 技能池面板样式已移至 styles.css (Ver. Dawn Remastered)
+// 此函数保留用于注入动画关键帧（如果 styles.css 未加载时的降级方案）
+function injectMovePoolStyles() {
+    // 样式已在 styles.css 中定义，此处仅作为降级检查
+    // 如果 styles.css 正常加载，此函数无需执行任何操作
+    console.log('[MOVE_POOL] 样式由 styles.css 提供 (Ver. Dawn)');
+}
+
 /**
  * 翻译招式名称为中文
  * @param {string} moveName - 招式英文名称
@@ -878,25 +1374,103 @@ function loadEraData() {
         console.log('[PKM] ✓ ERA 数据加载成功', db.player?.name);
         return true;
     } else {
-        console.warn('[PKM] ERA 数据为空，使用默认空数据');
+        console.warn('[PKM] ERA 数据为空，使用测试数据');
         db = {
             player: {
                 name: 'Trainer',
                 bonds: {},
                 unlocks: {},
                 party: {
-                    slot1: { slot: 1, name: null },
-                    slot2: { slot: 2, name: null },
-                    slot3: { slot: 3, name: null },
+                    slot1: {
+                        slot: 1,
+                        name: 'Charizard',
+                        species: 'charizard',
+                        nickname: null,
+                        lv: 55,
+                        gender: 'M',
+                        nature: 'Adamant',
+                        ability: 'Blaze',
+                        item: 'charcoal',
+                        shiny: false,
+                        isLead: true,
+                        moves: {
+                            move1: 'Flamethrower',
+                            move2: 'Air Slash',
+                            move3: 'Dragon Claw',
+                            move4: 'Roost'
+                        },
+                        friendship: {
+                            avs: { trust: 180, passion: 120, insight: 90, devotion: 50 }
+                        },
+                        stats_meta: {
+                            ivs: { hp: 31, atk: 28, def: 25, spa: 31, spd: 20, spe: 31 },
+                            ev_level: 252
+                        }
+                    },
+                    slot2: {
+                        slot: 2,
+                        name: 'Pikachu',
+                        species: 'pikachu',
+                        nickname: null,
+                        lv: 42,
+                        gender: 'F',
+                        nature: 'Timid',
+                        ability: 'Static',
+                        item: 'light-ball',
+                        shiny: true,
+                        isLead: false,
+                        moves: {
+                            move1: 'Thunderbolt',
+                            move2: 'Quick Attack',
+                            move3: null,
+                            move4: null
+                        },
+                        friendship: {
+                            avs: { trust: 255, passion: 200, insight: 150, devotion: 100 }
+                        },
+                        stats_meta: {
+                            ivs: { hp: 20, atk: 15, def: 18, spa: 31, spd: 25, spe: 31 },
+                            ev_level: 180
+                        }
+                    },
+                    slot3: {
+                        slot: 3,
+                        name: 'Garchomp',
+                        species: 'garchomp',
+                        nickname: null,
+                        lv: 60,
+                        gender: 'M',
+                        nature: 'Jolly',
+                        ability: 'Rough Skin',
+                        item: null,
+                        shiny: false,
+                        isLead: false,
+                        moves: {
+                            move1: 'Earthquake',
+                            move2: 'Dragon Claw',
+                            move3: 'Stone Edge',
+                            move4: 'Swords Dance'
+                        },
+                        friendship: {
+                            avs: { trust: 100, passion: 80, insight: 60, devotion: 30 }
+                        },
+                        stats_meta: {
+                            ivs: { hp: 31, atk: 31, def: 28, spa: 10, spd: 22, spe: 31 },
+                            ev_level: 300
+                        }
+                    },
                     slot4: { slot: 4, name: null },
                     slot5: { slot: 5, name: null },
                     slot6: { slot: 6, name: null }
-                }
+                },
+                box: {}
             },
             world_state: {
-                location: null,
+                location: { x: 0, y: 0 },
+                time: { period: 'morning', derived: { dayOfYear: 15 } },
                 npcs: {}
-            }
+            },
+            settings: {}
         };
         return false;
     }
@@ -1388,6 +1962,11 @@ function createCardHTML(pkm, slotIdStr) {
                 </div>
                 <div class="summary-actions">
                     ${leaderBtnHtml}
+                    <div class="build-action" onclick="event.stopPropagation(); openMovePoolPanel('${slotIdStr}')" title="Adjust Moves">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                        </svg>
+                    </div>
                     <div class="avs-action" onclick="toggleAVS(event, '${slotIdStr}')" title="Affinity Gauge">
                         <svg viewBox="0 0 24 24">
                             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>

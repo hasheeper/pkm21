@@ -4299,3 +4299,463 @@ body.map-fullscreen-active {
 .live-tile.disabled .t-glow {
     display: none;
 }
+
+/* =========================================
+   MOVE POOL PANEL (Ver. Dawn Remastered)
+   技能池面板 - 白底科幻风格
+   ========================================= */
+
+/* --- 核心变量 --- */
+:root {
+    --mpm-bg: rgba(252, 253, 255, 0.96);
+    --mpm-glass: blur(20px) saturate(180%);
+    --mpm-border: 1px solid rgba(223, 230, 233, 0.6);
+    --mpm-shadow: 0 25px 50px -10px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.8) inset;
+    --mpm-accent: #00cec9;
+    --mpm-accent2: #0984e3;
+    --mpm-red: #ff7675;
+    --mpm-text: #2d3436;
+    --mpm-sub: #636e72;
+    --mpm-font-ui: 'Exo 2', sans-serif;
+    --mpm-skew: 0deg;
+    --mpm-skew-rev: 0deg;
+}
+
+/* --- 遮罩层与容器 --- */
+.mpm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 36, 40, 0.35);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    overflow: hidden;
+    touch-action: none;
+}
+
+.mpm-container {
+    background: var(--mpm-bg);
+    backdrop-filter: var(--mpm-glass);
+    -webkit-backdrop-filter: var(--mpm-glass);
+    border-radius: 12px;
+    border: var(--mpm-border);
+    width: 90%;
+    max-width: 440px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--mpm-shadow);
+    position: relative;
+    transform: translateY(0);
+    overflow: hidden;
+}
+
+/* 背景装饰纹理 (网格线) */
+.mpm-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background-image: 
+        linear-gradient(rgba(9, 132, 227, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(9, 132, 227, 0.03) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+/* --- 头部 --- */
+.mpm-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background: #fff;
+    border-bottom: 2px solid #f1f2f6;
+    margin-bottom: 5px;
+    position: relative;
+    z-index: 5;
+}
+
+/* 顶部装饰条 */
+.mpm-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20px;
+    width: 60px;
+    height: 4px;
+    border-radius: 0 0 4px 4px;
+    background: var(--mpm-accent2);
+    box-shadow: 0 2px 6px rgba(9, 132, 227, 0.35);
+}
+
+.mpm-title {
+    display: flex;
+    flex-direction: column;
+}
+
+.mpm-species {
+    font-family: var(--mpm-font-ui);
+    font-size: 1.4rem;
+    font-weight: 900;
+    font-style: italic;
+    color: var(--mpm-text);
+    line-height: 1;
+    letter-spacing: -1px;
+    text-transform: uppercase;
+}
+
+.mpm-lv {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #b2bec3;
+    font-family: var(--mpm-font-ui);
+    letter-spacing: 2px;
+    margin-left: 2px;
+}
+
+.mpm-close {
+    background: transparent;
+    border: 1px solid #dfe6e9;
+    border-radius: 4px;
+    color: #b2bec3;
+    font-size: 16px;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.mpm-close:hover {
+    color: var(--mpm-red);
+    border-color: var(--mpm-red);
+    background: #fff5f5;
+    transform: scale(1.1);
+}
+
+/* --- 内容区 --- */
+.mpm-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px 20px 20px 20px;
+}
+
+.mpm-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.mpm-body::-webkit-scrollbar-thumb {
+    background: #dfe6e9;
+    border-radius: 4px;
+}
+
+.mpm-section {
+    margin-bottom: 24px;
+    position: relative;
+}
+
+.mpm-section-title {
+    font-family: var(--mpm-font-ui);
+    font-size: 0.75rem;
+    font-weight: 900;
+    color: #b2bec3;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    padding-left: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mpm-section-title::before {
+    content: '';
+    display: block;
+    width: 4px;
+    height: 4px;
+    background: var(--mpm-accent);
+    transform: rotate(45deg);
+    box-shadow: 0 0 5px var(--mpm-accent);
+}
+
+.mpm-section-title small {
+    color: #b2bec3;
+    font-weight: 500;
+}
+
+/* --- 当前技能槽 (Active Slots) --- */
+.mpm-current-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.mpm-current-move {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    padding: 8px 12px;
+    height: 50px;
+    box-sizing: border-box;
+    border-radius: 4px;
+    border: 1px solid #f1f2f6;
+    border-left: 4px solid var(--mpm-accent2);
+    box-shadow: 2px 3px 6px rgba(0,0,0,0.02);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.mpm-current-move::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.8), transparent);
+    pointer-events: none;
+}
+
+/* 空槽 */
+.mpm-current-move.empty {
+    border-left-color: #b2bec3;
+    border-style: dashed;
+    border-width: 1px;
+    border-left-style: solid;
+    border-left-width: 4px;
+    background: rgba(245,246,250, 0.4);
+    opacity: 0.8;
+    box-shadow: none;
+}
+
+
+.mpm-move-idx {
+    font-family: var(--mpm-font-ui);
+    font-size: 1.2rem;
+    font-weight: 900;
+    font-style: italic;
+    color: rgba(9, 132, 227, 0.15);
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%) skewX(10deg) scale(1.5);
+    pointer-events: none;
+}
+
+.mpm-move-name {
+    flex: 1;
+    font-weight: 800;
+    font-size: 1rem;
+    color: var(--mpm-text);
+    z-index: 1;
+    line-height: 1;
+}
+
+/* 移除按钮 (X) */
+.mpm-remove-btn {
+    background: transparent;
+    border: none;
+    color: #fab1a0;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    z-index: 2;
+}
+
+.mpm-remove-btn:hover {
+    background: #ff7675;
+    color: #fff;
+    transform: scale(1.1);
+    box-shadow: 0 2px 5px rgba(255,118,117,0.4);
+}
+
+/* --- 技能池 (Pool Grids) --- */
+.mpm-pool-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
+    padding: 2px;
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.mpm-pool-move {
+    position: relative;
+    background: #fff;
+    padding: 8px 10px;
+    min-height: 42px;
+    border-radius: 4px;
+    border: 1px solid #dfe6e9;
+    border-bottom: 2px solid #b2bec3;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+
+.mpm-pool-move:hover {
+    transform: translateY(-3px);
+    border-color: var(--mpm-accent);
+    border-bottom-color: var(--mpm-accent);
+    background: #f0fdfc;
+    box-shadow: 0 5px 15px -3px rgba(0, 206, 201, 0.25);
+}
+
+.mpm-pool-lv {
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 0.55rem;
+    font-family: var(--mpm-font-ui);
+    font-weight: 700;
+    background: #b2bec3;
+    color: #fff;
+    padding: 0px 4px 1px 4px;
+    border-radius: 2px 0 4px 0;
+    line-height: 1;
+    letter-spacing: 0.5px;
+}
+
+.mpm-pool-move:hover .mpm-pool-lv {
+    background: var(--mpm-accent);
+}
+
+.mpm-pool-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #636e72;
+    text-align: center;
+    margin-top: 2px;
+    line-height: 1.1;
+}
+
+.mpm-pool-move:hover .mpm-pool-name {
+    color: #00cec9;
+    text-shadow: 0 0 1px rgba(0,206,201,0.1);
+}
+
+/* --- 底部/保存区域 --- */
+.mpm-footer {
+    padding: 16px 24px;
+    background: rgba(255,255,255,0.8);
+    border-top: 1px solid rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mpm-save-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    padding: 0 20px;
+    height: 48px;
+    font-family: var(--mpm-font-ui);
+    font-style: italic;
+    font-weight: 900;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.25s;
+    box-shadow: 0 4px 0 #009174, 0 10px 20px rgba(0, 184, 148, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mpm-save-btn:hover {
+    filter: brightness(1.05);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #009174, 0 15px 25px rgba(0, 184, 148, 0.3);
+}
+
+.mpm-save-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 #009174;
+}
+
+/* Loading/Empty State */
+.mpm-loading,
+.mpm-empty {
+    color: #b2bec3;
+    text-align: center;
+    padding: 40px;
+    font-style: italic;
+    font-family: var(--mpm-font-ui);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.mpm-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(9, 132, 227, 0.15);
+    border-top-color: var(--mpm-accent2);
+    border-radius: 50%;
+    animation: mpmSpin 0.8s linear infinite;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+@keyframes mpmSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* 内部通知 */
+.mpm-notification {
+    background: #2d3436 !important;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+    color: #fff !important;
+    font-family: var(--mpm-font-ui);
+    font-style: italic;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
+    transform: translateX(-50%) !important;
+    border-left: 5px solid var(--mpm-accent) !important;
+}
+
+/* Build 按钮样式 */
+.build-action {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: transparent;
+    color: #b2bec3;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.build-action:hover {
+    color: #70a1ff;
+    transform: translateY(-2px);
+}
+
+.build-action svg {
+    width: 20px;
+    height: 20px;
+    stroke-width: 2;
+    fill: none;
+    stroke: currentColor;
+}
