@@ -191,7 +191,7 @@ const MAP_TRANSLATIONS = {
     "CP_Apex_Base": "前线宝可梦中心",
     "Bed_Rest": "住宿点",
     "Player_s_Room": "玩家房间",
-    "PC_Terminal": "电脑终端",
+    "PC_Terminal": "终端塔",
     "Police_Box_Z": "Z区安保站",
     "Police_Box_N": "N区巡逻亭",
     "Police_Box_B": "海岸警卫站",
