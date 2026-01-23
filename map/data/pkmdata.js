@@ -13,7 +13,6 @@ window.SPAWN_TABLES_DATA = {
         "patrat",
 
         "fidough",
-        "eevee",
         "porygon",
         "jigglypuff",
         "solosis",
