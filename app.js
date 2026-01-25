@@ -400,10 +400,10 @@ function generateMoveChangeNarrative(slotKey, moves, pkm, changedMoves) {
     
     const changeListStr = changeDescriptions.join('、');
     
-    return `[System Narrative Hint]
-${displayName} (Lv.${lv}) 调整了部分技能配置。
-变化: ${changeListStr}
-(请在后续叙事中自然地体现这一变化)`;
+    return `[System Event: R-Sync 战术同步]
+> 目标: ${displayName} (Lv.${lv})
+> 战术配置已重组: ${changeListStr}
+(Guidance: 训练家利用 P-Phone 从云端引导了记忆数据。)`;
 }
 
 /**
@@ -444,12 +444,6 @@ function sendMoveChangeToTavern(slotKey, moves) {
         type: 'PKM_UPDATE_MOVES',
         slotKey: slotKey,
         moves: moves
-    }, '*');
-    
-    // 发送系统消息提示 AI
-    parentWindow.postMessage({
-        type: 'PKM_INJECT_SYSTEM_MSG',
-        content: `[System: ${displayName}'s moveset was adjusted via Pokedex. New Moves: ${moveList}. (Narrative hint: The Pokemon refined its combat style during the break.)]`
     }, '*');
     
     console.log('[MOVE_POOL] 技能变更已发送:', slotKey, moves);
