@@ -8587,7 +8587,8 @@ if (typeof window !== 'undefined') {
       enableEVO: true,
       enableBGM: true,
       enableSFX: true,
-      enableClash: false
+      enableClash: false,
+      enableEnvironment: true
     };
     const eraSettings = eraPlayerData?.settings || {};
     const aiSettings = aiBattleData?.settings || {};

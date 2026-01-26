@@ -2147,6 +2147,18 @@ const TacticalSystem = {
             changes.push(`★ 地表变更: 从「${fromInfo.surface}」变为「${toInfo.surface}」`);
         }
         
+        // 天气变化
+        const weatherGrid = window.weatherGridData;
+        if (weatherGrid) {
+            const fromWeatherData = weatherGrid[`${fromInfo.gx}_${fromInfo.gy}`];
+            const toWeatherData = weatherGrid[`${toInfo.gx}_${toInfo.gy}`];
+            const fromWeather = fromWeatherData?.weather || 'clear';
+            const toWeather = toWeatherData?.weather || 'clear';
+            if (fromWeather !== toWeather) {
+                changes.push(`★ 天气变化: 从「${fromWeather}」变为「${toWeather}」`);
+            }
+        }
+        
         if (changes.length > 0) {
             lines.push('');
             lines.push('【环境变化】');
