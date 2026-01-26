@@ -1252,7 +1252,8 @@ const DefaultSettings = {
     enableEVO: true,
     enableBGM: true,
     enableSFX: true,
-    enableClash: true
+    enableClash: true,
+    enableEnvironment: true
 };
 
 let statusClockTimer = null;
@@ -1716,6 +1717,12 @@ const SettingsManifest = [
         label: 'CLASH SYSTEM', 
         desc: 'Enable clash mechanics during battle.', 
         color: '#e17055'
+    },
+    { 
+        key: 'enableEnvironment', 
+        label: 'ENVIRONMENT', 
+        desc: 'Enable weather & terrain effects in battle.', 
+        color: '#55efc4'
     }
 ];
 

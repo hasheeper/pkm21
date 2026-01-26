@@ -1045,7 +1045,7 @@ const TacticalSystem = {
         ctx.restore();
     },
     
-    // 绘制天气图标（右上角，威胁度指示器左侧）
+    // 绘制天气图标（左上角）
     _drawWeatherIcon: function(ctx, x, y, realS, gx, gy, alpha) {
         // 从全局 weatherGrid 获取天气数据
         const weatherGrid = window.weatherGridData;
@@ -1060,9 +1060,9 @@ const TacticalSystem = {
         const color = WEATHER_COLORS[weatherType];
         if (!icon || !color) return;
         
-        // 位置：右上角，威胁度指示器左侧
+        // 位置：左上角
         const iconSize = 18;
-        const iconX = x + realS - 36; // 威胁度在 realS-16，天气在其左侧
+        const iconX = x + 6;
         const iconY = y + 6;
         
         ctx.save();
