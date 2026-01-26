@@ -8602,6 +8602,46 @@ if (typeof window !== 'undefined') {
     const resolvedProficiency = resolvedPlayer.trainerProficiency || 0;
     const trainerProficiency = Math.min(255, Math.max(0, Math.max(eraProficiency, resolvedProficiency)));
 
+    // === 处理环境天气 (从 ERA weather_grid 读取) ===
+    const eraVars = await getEraVars();
+    let environmentConfig = null;
+    
+    if (eraVars) {
+      // 获取当前位置
+      const locationData = getEraValue(eraVars, 'world_state.location', null);
+      const weatherGrid = getEraValue(eraVars, 'world_state.weather_grid', null);
+      
+      if (locationData && weatherGrid && typeof locationData.x === 'number') {
+        // 计算格子键（与 tavern-inject.js 一致）
+        const MAP_CENTER_X = 26;
+        const MAP_CENTER_Y = 26;
+        let gx = locationData.x;
+        if (gx > 0) gx -= 1;
+        gx = gx + MAP_CENTER_X;
+        let gy = locationData.y;
+        if (gy > 0) gy -= 1;
+        gy = MAP_CENTER_Y - gy - 1;
+        
+        const gridKey = `${gx}_${gy}`;
+        const gridWeather = weatherGrid[gridKey];
+        
+        if (gridWeather) {
+          // 按 ENVIRONMENT_WEATHER_FORMAT.md 格式构建 environment
+          environmentConfig = {
+            weather: gridWeather.weather,
+            weatherTurns: 0
+          };
+          
+          // 添加 suppression（如果有）
+          if (gridWeather.suppression) {
+            environmentConfig.suppression = gridWeather.suppression;
+          }
+          
+          console.log(`${PLUGIN_NAME} [WEATHER] 当前格子天气: ${gridWeather.weather} @ ${gridKey}`);
+        }
+      }
+    }
+
     // 构建最终的战斗 JSON（前端 player/enemy 格式）
     const completeBattle = {
       settings: finalSettings,
@@ -8623,6 +8663,11 @@ if (typeof window !== 'undefined') {
       party: resolvedEnemy.party,
       script: aiBattleData.script || null
     };
+    
+    // 添加环境天气（与 player 同级）
+    if (environmentConfig) {
+      completeBattle.environment = environmentConfig;
+    }
 
     console.log(`${PLUGIN_NAME} 构建完整战斗JSON:`, completeBattle);
     console.log(`${PLUGIN_NAME} [SETTINGS] 全局系统开关:`, finalSettings);

@@ -1669,6 +1669,289 @@
             }
         };
         
+        // ========== 天气系统（108天周期 + 三层权重叠加）==========
+        const WeatherSystem = {
+            // 气候数据缓存
+            climateData: null,
+            dataLoaded: false,
+            
+            // 108天周期常量
+            YEAR_DAYS: 108,
+            SEASON_DAYS: 27,
+            SEGMENT_DAYS: 9,
+            
+            // 季节顺序
+            SEASONS: ['Spring', 'Summer', 'Autumn', 'Winter'],
+            // 阶段顺序
+            SEGMENTS: ['Early', 'Mid', 'Late'],
+            
+            // 原版四个天气（用于 suppression）
+            POKEMON_WEATHERS: ['rain', 'sun', 'sandstorm', 'snow'],
+            
+            // 加载气候数据
+            async loadClimateData() {
+                if (this.dataLoaded && this.climateData) return true;
+                
+                try {
+                    const res = await fetch(PKM_URL + 'map/data/climatedata.json');
+                    if (res.ok) {
+                        this.climateData = await res.json();
+                        this.dataLoaded = true;
+                        console.log('[PKM] ✓ climatedata.json 已加载');
+                        return true;
+                    }
+                } catch (e) {
+                    console.error('[PKM] 加载气候数据失败:', e);
+                }
+                return false;
+            },
+            
+            // 根据游戏日期计算季节和阶段
+            getSeasonSegment(day) {
+                // day 从 1 开始，转为 0-indexed
+                const dayIndex = ((day - 1) % this.YEAR_DAYS + this.YEAR_DAYS) % this.YEAR_DAYS;
+                
+                // 计算季节 (0-3)
+                const seasonIndex = Math.floor(dayIndex / this.SEASON_DAYS);
+                const season = this.SEASONS[seasonIndex];
+                
+                // 计算阶段 (0-2)
+                const dayInSeason = dayIndex % this.SEASON_DAYS;
+                const segmentIndex = Math.floor(dayInSeason / this.SEGMENT_DAYS);
+                const segment = this.SEGMENTS[segmentIndex];
+                
+                return { season, segment, dayIndex, seasonIndex, segmentIndex };
+            },
+            
+            // 获取季节修正器
+            getSeasonalModifiers(season, segment) {
+                if (!this.climateData) return null;
+                return this.climateData[season]?.[segment]?.modifier || null;
+            },
+            
+            // 获取气候带基础权重
+            getClimateBaseWeights(climateZoneId) {
+                if (!this.climateData) return null;
+                return this.climateData[climateZoneId] || null;
+            },
+            
+            // 三层权重叠加计算最终天气
+            calculateWeather(climateZoneId, day) {
+                const baseWeights = this.getClimateBaseWeights(climateZoneId);
+                if (!baseWeights) {
+                    console.warn('[PKM] [WEATHER] 未找到气候区:', climateZoneId);
+                    return null;
+                }
+                
+                const { season, segment } = this.getSeasonSegment(day);
+                const modifiers = this.getSeasonalModifiers(season, segment);
+                if (!modifiers) {
+                    console.warn('[PKM] [WEATHER] 未找到季节修正:', season, segment);
+                    return null;
+                }
+                
+                // 计算最终权重
+                const finalWeights = {};
+                let totalWeight = 0;
+                
+                for (const [weatherType, baseWeight] of Object.entries(baseWeights)) {
+                    const modifier = modifiers[weatherType] ?? 1.0;
+                    const finalWeight = baseWeight * modifier;
+                    if (finalWeight > 0) {
+                        finalWeights[weatherType] = finalWeight;
+                        totalWeight += finalWeight;
+                    }
+                }
+                
+                if (totalWeight === 0) {
+                    console.warn('[PKM] [WEATHER] 所有天气权重为零');
+                    return { weather: 'clear', weights: finalWeights, season, segment };
+                }
+                
+                // 加权随机选择
+                const roll = Math.random() * totalWeight;
+                let cumulative = 0;
+                let selectedWeather = 'clear';
+                
+                for (const [weatherType, weight] of Object.entries(finalWeights)) {
+                    cumulative += weight;
+                    if (roll < cumulative) {
+                        selectedWeather = weatherType;
+                        break;
+                    }
+                }
+                
+                return {
+                    weather: selectedWeather,
+                    weights: finalWeights,
+                    season,
+                    segment,
+                    climateZone: climateZoneId
+                };
+            },
+            
+            // 生成 suppression 配置（权重为零的原版天气）
+            generateSuppression(climateZoneId, day) {
+                const baseWeights = this.getClimateBaseWeights(climateZoneId);
+                if (!baseWeights) return null;
+                
+                const { season, segment } = this.getSeasonSegment(day);
+                const modifiers = this.getSeasonalModifiers(season, segment);
+                if (!modifiers) return null;
+                
+                const suppressed = [];
+                
+                for (const pokemonWeather of this.POKEMON_WEATHERS) {
+                    const baseWeight = baseWeights[pokemonWeather] ?? 0;
+                    const modifier = modifiers[pokemonWeather] ?? 1.0;
+                    const finalWeight = baseWeight * modifier;
+                    
+                    // 权重为零 → suppressed
+                    if (finalWeight === 0) {
+                        suppressed.push(pokemonWeather);
+                    }
+                }
+                
+                return suppressed.length > 0 ? { suppressed } : null;
+            },
+            
+            // 生成格子天气配置（只保留必要字段）
+            generateGridWeather(climateZoneId, day) {
+                const weatherResult = this.calculateWeather(climateZoneId, day);
+                if (!weatherResult) return null;
+                
+                const suppression = this.generateSuppression(climateZoneId, day);
+                
+                // 只保留 weather 和 suppression
+                const config = {
+                    weather: weatherResult.weather
+                };
+                
+                if (suppression && suppression.suppressed.length > 0) {
+                    config.suppression = suppression;
+                }
+                
+                return config;
+            },
+            
+            // 为玩家周围13格生成天气（类似 pokemon_spawns）
+            async generateForNearbyGrids(x, y, eraVars) {
+                await this.loadClimateData();
+                if (!this.climateData) return null;
+                
+                const currentDay = eraVars?.world_state?.time?.day || 1;
+                const internal = LocationContextBackend.toInternalCoords(x, y);
+                const centerGx = internal.gx;
+                const centerGy = internal.gy;
+                
+                // 获取已存在的天气数据
+                const existingWeather = eraVars?.world_state?.weather_grid || {};
+                
+                // 13格偏移（与 pokemon_spawns 一致）
+                const offsets = [
+                    { dx: 0, dy: 0 },
+                    { dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
+                    { dx: -1, dy: -1 }, { dx: 1, dy: -1 }, { dx: -1, dy: 1 }, { dx: 1, dy: 1 },
+                    { dx: 0, dy: -2 }, { dx: 0, dy: 2 }, { dx: -2, dy: 0 }, { dx: 2, dy: 0 }
+                ];
+                
+                const newWeather = {};
+                
+                for (const { dx, dy } of offsets) {
+                    const gx = centerGx + dx;
+                    const gy = centerGy + dy;
+                    const key = `${gx}_${gy}`;
+                    
+                    // 只增不改
+                    if (existingWeather[key]) continue;
+                    
+                    // 获取该格子的气候区
+                    const climateZoneId = this.getClimateZoneAtGrid(gx, gy);
+                    const weatherConfig = this.generateGridWeather(climateZoneId, currentDay);
+                    
+                    if (weatherConfig) {
+                        newWeather[key] = weatherConfig;
+                    }
+                }
+                
+                return Object.keys(newWeather).length > 0 ? newWeather : null;
+            },
+            
+            // 获取当前格子的天气
+            getCurrentGridWeather(x, y, eraVars) {
+                const internal = LocationContextBackend.toInternalCoords(x, y);
+                const key = `${internal.gx}_${internal.gy}`;
+                return eraVars?.world_state?.weather_grid?.[key] || null;
+            },
+            
+            // Climate IntGrid 值到气候区名称的映射（从 mapdata.json 定义）
+            CLIMATE_INT_MAP: {
+                1: 'Tropical_Monsoon',
+                2: 'Industrial_Gloom',
+                3: 'Scorched_Badlands',
+                4: 'Polar_Tundra',
+                5: 'Spectral_Haze',
+                6: 'Continental_Lush',
+                7: 'Controlled_Vault',
+                8: 'Continental_Savanna',
+                9: 'Continental_Highland',
+                10: 'Iron_Sand_Desert',
+                11: 'Volcanic_Fallout',
+                12: 'Radiant_Cityscape',
+                13: 'Maritime_Trade_Winds',
+                14: 'Azure_Coral_Atolls',
+                15: 'Southern_Tradewind',
+                16: 'Chrome_Magnetic_Waters',
+                17: 'Northern_Floe',
+                18: 'Phosphorescent_Shoals',
+                19: 'Basalt_Geyser_Shelf',
+                20: 'Abyssal_North',
+                21: 'Abyssal_South',
+                22: 'Abyssal_Middle'
+            },
+            
+            // Climate 图层数据缓存
+            climateGridData: null,
+            climateGridWidth: 52,
+            
+            // 从 mapdata.json 加载 Climate 图层
+            loadClimateGrid() {
+                if (this.climateGridData) return;
+                
+                const mapData = LocationContextBackend.mapData;
+                if (!mapData || !mapData.levels || !mapData.levels[0]) return;
+                
+                const levelData = mapData.levels[0];
+                for (const layer of levelData.layerInstances || []) {
+                    if (layer.__identifier === 'Climate' && layer.intGridCsv) {
+                        this.climateGridData = layer.intGridCsv;
+                        this.climateGridWidth = layer.__cWid || 52;
+                        console.log('[PKM] ✓ Climate 图层已加载');
+                        return;
+                    }
+                }
+            },
+            
+            // 获取当前位置的气候区ID（从 mapdata.json Climate 图层读取）
+            getClimateZoneAtGrid(gx, gy) {
+                this.loadClimateGrid();
+                
+                if (!this.climateGridData) {
+                    return 'Continental_Lush'; // 默认值
+                }
+                
+                // 计算在 intGridCsv 中的索引
+                const index = gy * this.climateGridWidth + gx;
+                const climateInt = this.climateGridData[index];
+                
+                if (climateInt && this.CLIMATE_INT_MAP[climateInt]) {
+                    return this.CLIMATE_INT_MAP[climateInt];
+                }
+                
+                return 'Continental_Lush'; // 默认值
+            }
+        };
+        
         // ========== 宝可梦区域刷新系统（ERA 注入版）==========
         const PokemonSpawnSystem = {
             // 威胁度定义
@@ -2177,6 +2460,80 @@
             console.log('[PKM] ✓ 宝可梦区域已注入 ERA:', Object.keys(newSpawns));
         }
         
+        // 插入天气格子数据到 ERA（类似 pokemon_spawns）
+        async function eraInsertWeatherGrid(newWeather) {
+            if (!newWeather || Object.keys(newWeather).length === 0) return;
+            
+            const insertData = {
+                world_state: {
+                    weather_grid: newWeather
+                }
+            };
+            
+            // 使用 era:insertByObject 插入（只增不改）
+            insertEraVars(insertData);
+            console.log('[PKM] ✓ 天气格子已注入 ERA:', Object.keys(newWeather));
+        }
+        
+        // 刷新天气格子数据（每日刷新）- 先删除再插入
+        async function eraRefreshWeatherGrid(newWeather) {
+            try {
+                // 构建 VariableDelete 块
+                const variableDeleteData = {
+                    world_state: {
+                        weather_grid: {}
+                    }
+                };
+                const variableDeleteJson = JSON.stringify(variableDeleteData, null, 2);
+                const variableDeleteBlock = `<VariableDelete>\n${variableDeleteJson}\n</VariableDelete>`;
+                
+                // 构建 VariableInsert 块
+                let variableInsertBlock = '';
+                if (newWeather && Object.keys(newWeather).length > 0) {
+                    const variableInsertData = {
+                        world_state: {
+                            weather_grid: newWeather
+                        }
+                    };
+                    const variableInsertJson = JSON.stringify(variableInsertData, null, 2);
+                    variableInsertBlock = `<VariableInsert>\n${variableInsertJson}\n</VariableInsert>`;
+                }
+                
+                console.log('[PKM] [WEATHER] 生成 VariableDelete + VariableInsert（每日刷新）');
+                
+                const messageId = getLastMessageId();
+                if (!messageId) {
+                    console.warn('[PKM] [WEATHER] 无法获取最近消息ID');
+                    return false;
+                }
+                
+                const messages = getChatMessages(messageId);
+                if (!messages || messages.length === 0) {
+                    console.warn('[PKM] [WEATHER] 无法获取消息内容');
+                    return false;
+                }
+                
+                const msg = messages[0];
+                let content = msg.message || '';
+                
+                content = content.trim() + '\n\n' + variableDeleteBlock;
+                if (variableInsertBlock) {
+                    content += '\n' + variableInsertBlock;
+                }
+                
+                await setChatMessages([{
+                    message_id: messageId,
+                    message: content
+                }], { refresh: 'affected' });
+                
+                console.log('[PKM] ✓ 天气格子已刷新:', Object.keys(newWeather || {}));
+                return true;
+            } catch (e) {
+                console.error('[PKM] [WEATHER] 刷新失败:', e);
+                return false;
+            }
+        }
+        
         // 刷新宝可梦区域数据（每日刷新）- 先删除再插入，合并成一个消息操作
         async function eraRefreshPokemonSpawns(newSpawns) {
             try {
@@ -2343,7 +2700,7 @@
                 
                 // ========== 为玩家周围区域生成宝可梦（只增不改）==========
                 // 注意：日期变化时的刷新（删除+插入）由 pkm:refreshPokemonSpawns 事件处理
-                const currentDay = eraVars?.world_state?.time?.day;
+                const currentDay = eraVars?.world_state?.time?.day || 1;
                 lastGameDay = currentDay;
                 
                 const newSpawns = await PokemonSpawnSystem.generateForNearbyGrids(
@@ -2354,6 +2711,19 @@
                 if (newSpawns && Object.keys(newSpawns).length > 0) {
                     await eraInsertPokemonSpawns(newSpawns);
                 }
+                
+                // ========== 天气系统：为周围13格生成天气（只增不改）==========
+                const newWeatherGrid = await WeatherSystem.generateForNearbyGrids(
+                    location.x,
+                    location.y,
+                    eraVars
+                );
+                if (newWeatherGrid && Object.keys(newWeatherGrid).length > 0) {
+                    await eraInsertWeatherGrid(newWeatherGrid);
+                }
+                
+                // 获取当前格子的天气
+                const currentWeatherConfig = WeatherSystem.getCurrentGridWeather(location.x, location.y, eraVars);
                 
                 // ========== 获取当前格子的宝可梦（从 ERA 读取）==========
                 const currentPokemon = PokemonSpawnSystem.getCurrentGridPokemon(
@@ -2367,6 +2737,26 @@
                     location.x, 
                     location.y
                 );
+                
+                // ========== 添加天气信息到上下文 ==========
+                if (currentWeatherConfig) {
+                    // 简化显示：只显示天气和压制
+                    let weatherLine = `天气: ${currentWeatherConfig.weather}`;
+                    if (currentWeatherConfig.suppression?.suppressed?.length > 0) {
+                        weatherLine += ` (压制: ${currentWeatherConfig.suppression.suppressed.join('/')})`;
+                    }
+                    
+                    // 在威胁度之后插入天气
+                    const threatPoint = contextText.indexOf('威胁度:');
+                    if (threatPoint > 0) {
+                        const lineEnd = contextText.indexOf('\n', threatPoint);
+                        if (lineEnd > 0) {
+                            const before = contextText.substring(0, lineEnd);
+                            const after = contextText.substring(lineEnd);
+                            contextText = before + '\n' + weatherLine + after;
+                        }
+                    }
+                }
                 
                 // 添加当前格子的宝可梦信息
                 if (currentPokemon && currentPokemon.length > 0) {
