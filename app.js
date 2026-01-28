@@ -569,15 +569,6 @@ function translatePokemonNameApp(pokemonId) {
     return normalizedId.replace(/[-_]/g, ' ');
 }
 
-const RelationMeta = {
-    '-2': { label: 'HOSTILE',  color: '#2d3436', light: '#636e72', icon: '☠️', desc: 'Enemy' },
-    '-1': { label: 'COLD',     color: '#e17055', light: '#fab1a0', icon: '❄️', desc: 'Wary' },
-    '0':  { label: 'NEUTRAL',  color: '#b2bec3', light: '#dfe6e9', icon: '⚪', desc: 'Stranger' },
-    '1':  { label: 'FRIENDLY', color: '#0984e3', light: '#74b9ff', icon: '🔹', desc: 'Acquaintance' },
-    '2':  { label: 'TRUSTED',  color: '#00b894', light: '#55efc4', icon: '🍀', desc: 'Friend' },
-    '3':  { label: 'CALIB.3',  color: '#fd79a8', light: '#ffcce7', icon: '💗', desc: 'Close' },
-    '4':  { label: 'DEVOTED',  color: '#fdcb6e', light: '#ffeaa7', icon: '💍', desc: 'Max Bond' }
-};
 
 window.triggerMockBag = function(el) {
     if (!el) return;
@@ -634,611 +625,6 @@ const ZoneDB = {
 
 const ZoneOrder = ['N', 'B', 'S', 'A', 'Z'];
 
-/* ============================================================
-   TRANSIT SYSTEM (交通系统)
-   ============================================================ */
-// 交通数据缓存
-let transitData = {
-    mapData: null,
-    mapInfo: null,
-    stations: [],    // 环线车站
-    seaPorts: [],    // 港口码头
-    airfields: [],   // 空运停机坪
-    loaded: false
-};
-
-// 区域ID到简称的映射
-const REGION_ID_MAP = {
-    'Region_Zenith': 'Z',
-    'Region_Neon': 'N',
-    'Region_Bloom': 'B',
-    'Region_Shadow': 'S',
-    'Region_Apex': 'A'
-};
-
-// 交通设施ID规范化映射
-const TRANSIT_ID_NORMALIZE = {
-    'Summit_Dojo_POINT': 'Summit_Dojo_Point',
-    'Northern_Cemetery': 'Northern_Cemetery_Pad',
-    'Zenith_HQ': 'Zenith_HQ_Helipad'
-};
-
-// 坐标转换函数
-function toDisplayCoords(gx, gy) {
-    const MAP_CENTER_X = 26;
-    const MAP_CENTER_Y = 26;
-    let displayX = gx - MAP_CENTER_X;
-    if (displayX >= 0) displayX += 1;
-    let displayY = MAP_CENTER_Y - gy - 1;
-    if (displayY >= 0) displayY += 1;
-    return { x: displayX, y: displayY };
-}
-
-function toInternalCoords(displayX, displayY) {
-    const MAP_CENTER_X = 26;
-    const MAP_CENTER_Y = 26;
-    let x = displayX;
-    if (x > 0) x -= 1;
-    let internalX = x + MAP_CENTER_X;
-    let y = displayY;
-    if (y > 0) y -= 1;
-    let internalY = MAP_CENTER_Y - y - 1;
-    return { gx: internalX, gy: internalY };
-}
-
-// 计算两点间的曼哈顿距离
-function calcDistance(x1, y1, x2, y2) {
-    return Math.abs(x1 - x2) + Math.abs(y1 - y2);
-}
-
-// 根据坐标获取区域（与 tavern-inject.js 保持一致）
-function getRegionByCoords(x, y) {
-    // Z区（中枢区）：中心 6x6 范围
-    if (Math.abs(x) <= 6 && Math.abs(y) <= 6) return 'Z';
-    // N区（霓虹区）：东南象限
-    if (x > 0 && y < 0) return 'N';
-    // B区（海滨区）：西南象限
-    if (x < 0 && y < 0) return 'B';
-    // S区（暗影区）：东北象限
-    if (x > 0 && y > 0) return 'S';
-    // A区（极诣区）：西北象限
-    if (x < 0 && y > 0) return 'A';
-    return 'Z';
-}
-
-// 加载交通数据
-async function loadTransitData() {
-    if (transitData.loaded) return true;
-    
-    try {
-        const baseUrl = window.PKM_URL || './';
-        const [mapDataRes, mapInfoRes] = await Promise.all([
-            fetch(baseUrl + 'map/data/mapdata.json'),
-            fetch(baseUrl + 'map/data/mapinfo.json')
-        ]);
-        
-        if (mapDataRes.ok) {
-            transitData.mapData = await mapDataRes.json();
-        }
-        if (mapInfoRes.ok) {
-            transitData.mapInfo = await mapInfoRes.json();
-        }
-        
-        if (transitData.mapData) {
-            extractTransitEntities();
-        }
-        
-        transitData.loaded = true;
-        console.log('[TRANSIT] 交通数据加载完成');
-        return true;
-    } catch (e) {
-        console.error('[TRANSIT] 加载失败:', e);
-        return false;
-    }
-}
-
-// 从 mapdata.json 提取交通实体和 PC_Terminal
-function extractTransitEntities() {
-    if (!transitData.mapData?.levels?.[0]) return;
-    
-    const levelData = transitData.mapData.levels[0];
-    const gridSize = 16;
-    
-    transitData.stations = [];
-    transitData.seaPorts = [];
-    transitData.airfields = [];
-    transitData.pcTerminals = []; // PC_Terminal 信号塔位置
-    
-    for (const layer of levelData.layerInstances || []) {
-        if (layer.__type !== 'Entities') continue;
-        
-        for (const entity of layer.entityInstances || []) {
-            const worldX = entity.__worldX || entity.px[0];
-            const worldY = entity.__worldY || entity.px[1];
-            const gx = Math.floor(worldX / gridSize);
-            const gy = Math.floor(worldY / gridSize);
-            const displayCoords = toDisplayCoords(gx, gy);
-            
-            let fieldValue = null;
-            if (entity.fieldInstances?.[0]) {
-                fieldValue = entity.fieldInstances[0].__value;
-            }
-            
-            const item = {
-                id: fieldValue,
-                gx, gy,
-                x: displayCoords.x,
-                y: displayCoords.y,
-                region: getRegionByCoords(displayCoords.x, displayCoords.y)
-            };
-            
-            if (entity.__identifier === 'Transit_Station' && fieldValue) {
-                transitData.stations.push(item);
-            } else if (entity.__identifier === 'Sea_Route' && fieldValue) {
-                transitData.seaPorts.push(item);
-            } else if (entity.__identifier === 'Sky_Net' && fieldValue) {
-                transitData.airfields.push(item);
-            } else if (entity.__identifier === 'PC_Terminal') {
-                // PC_Terminal 不需要 fieldValue，只需要位置
-                transitData.pcTerminals.push({
-                    gx, gy,
-                    x: displayCoords.x,
-                    y: displayCoords.y,
-                    region: getRegionByCoords(displayCoords.x, displayCoords.y)
-                });
-            }
-        }
-    }
-    
-    console.log('[TRANSIT] 提取完成:', {
-        stations: transitData.stations.length,
-        seaPorts: transitData.seaPorts.length,
-        airfields: transitData.airfields.length,
-        pcTerminals: transitData.pcTerminals.length
-    });
-}
-
-// PC_Terminal 信号覆盖半径（格子数）
-const PC_SIGNAL_RADIUS = 3;
-
-// 检查玩家是否在信号覆盖范围内
-// 规则：Z区全覆盖 OR 在任意 PC_Terminal 的 3 格范围内
-function isInSignalCoverage(playerX, playerY) {
-    // Z区（中枢区）默认全覆盖
-    const playerRegion = getRegionByCoords(playerX, playerY);
-    if (playerRegion === 'Z') {
-        return { covered: true, reason: 'ZENITH_FULL_COVERAGE' };
-    }
-    
-    // 检查是否在任意 PC_Terminal 的信号范围内
-    if (transitData.pcTerminals && transitData.pcTerminals.length > 0) {
-        for (const terminal of transitData.pcTerminals) {
-            const dist = calcDistance(playerX, playerY, terminal.x, terminal.y);
-            if (dist <= PC_SIGNAL_RADIUS) {
-                return { 
-                    covered: true, 
-                    reason: 'PC_TERMINAL_RANGE',
-                    terminal: terminal,
-                    distance: dist
-                };
-            }
-        }
-    }
-    
-    // 找到最近的 PC_Terminal
-    let nearestDist = Infinity;
-    let nearestTerminal = null;
-    if (transitData.pcTerminals) {
-        for (const terminal of transitData.pcTerminals) {
-            const dist = calcDistance(playerX, playerY, terminal.x, terminal.y);
-            if (dist < nearestDist) {
-                nearestDist = dist;
-                nearestTerminal = terminal;
-            }
-        }
-    }
-    
-    return { 
-        covered: false, 
-        reason: 'OUT_OF_RANGE',
-        nearestTerminal: nearestTerminal,
-        nearestDistance: nearestDist
-    };
-}
-
-// 获取交通设施描述
-function getTransitDesc(id) {
-    const normalizedId = TRANSIT_ID_NORMALIZE[id] || id;
-    const infra = transitData.mapInfo?.transit_infrastructure || {};
-    return infra[normalizedId]?.desc || '';
-}
-
-// 获取交通设施显示名称
-function getTransitName(id) {
-    const normalizedId = TRANSIT_ID_NORMALIZE[id] || id;
-    return normalizedId.replace(/_/g, ' ');
-}
-
-/* --- TRANSIT 专用 SVG 图标 --- */
-const TransitIcons = {
-    loop: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="3" width="16" height="16" rx="2"/><path d="M4 11h16"/><path d="M12 3v8"/><circle cx="12" cy="16" r="1.5" fill="currentColor"/><path d="M8 19l-2 3"/><path d="M16 19l2 3"/></svg>`,
-    air: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 2L2 9.27l6.91 1 1.74 6.73 3.63-3.64L22 2z"/></svg>`,
-    sea: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="5" r="3"/><path d="M12 22V8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/></svg>`,
-    lock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
-    here: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l0.71 0.71L12 18l6.79 3l0.71-0.71L12 2z"/></svg>`
-};
-
-// 渲染 TRANSIT 页面（Remastered UI）
-async function renderTransitPage() {
-    const transitPage = document.getElementById('pg-transit');
-    if (!transitPage) return;
-    
-    if (!transitData.loaded) {
-        transitPage.innerHTML = `<div class="transit-loading"><div class="transit-empty">Initializing Navigation System...</div></div>`;
-        await loadTransitData();
-    }
-    
-    const playerX = currentMapCoords?.x || 0;
-    const playerY = currentMapCoords?.y || 0;
-    const playerRegion = getRegionByCoords(playerX, playerY);
-    
-    const atStation = transitData.stations.find(s => s.x === playerX && s.y === playerY);
-    const atSeaPort = transitData.seaPorts.find(s => s.x === playerX && s.y === playerY);
-    const atAirfield = transitData.airfields.find(s => s.x === playerX && s.y === playerY);
-    
-    const sortByDistance = (list) => {
-        return [...list].sort((a, b) => {
-            const distA = calcDistance(playerX, playerY, a.x, a.y);
-            return distA - calcDistance(playerX, playerY, b.x, b.y);
-        });
-    };
-    
-    const sortedStations = sortByDistance(transitData.stations);
-    const sortedSeaPorts = sortByDistance(transitData.seaPorts);
-    const sortedAirfields = sortByDistance(transitData.airfields);
-    
-    transitPage.innerHTML = `
-        <div class="team-header-dash">
-            <div class="th-title">TRANSIT LINK</div>
-            <div class="th-status-grp">
-                <div class="th-count">${playerRegion} <small>DISTRICT</small></div>
-            </div>
-        </div>
-        
-        <div class="transit-tabs">
-            <div class="transit-tab active" data-tab="loop" onclick="switchTransitTab('loop')">
-                <span>${TransitIcons.loop} LOOP-LINE</span>
-            </div>
-            <div class="transit-tab" data-tab="air" onclick="switchTransitTab('air')">
-                <span>${TransitIcons.air} AIR-NET</span>
-            </div>
-            <div class="transit-tab" data-tab="sea" onclick="switchTransitTab('sea')">
-                <span>${TransitIcons.sea} SEAPORT</span>
-            </div>
-        </div>
-        
-        <div class="transit-content">
-            <div class="transit-panel" id="transit-loop" style="display:block;">
-                ${renderTransitListV2(sortedStations, 'loop', playerRegion, atStation)}
-            </div>
-            <div class="transit-panel" id="transit-air" style="display:none;">
-                ${renderTransitListV2(sortedAirfields, 'air', playerRegion, atAirfield)}
-            </div>
-            <div class="transit-panel" id="transit-sea" style="display:none;">
-                ${renderTransitListV2(sortedSeaPorts, 'sea', playerRegion, atSeaPort)}
-            </div>
-        </div>
-        <div style="height:40px;"></div>
-    `;
-}
-
-function renderTransitListV2(list, type, playerRegion, atStation) {
-    if (!list || list.length === 0) {
-        return `<div class="transit-empty">NO CONNECTION SIGNAL FOUND</div>`;
-    }
-    
-    const playerX = currentMapCoords?.x || 0;
-    const playerY = currentMapCoords?.y || 0;
-    const currentZone = list.filter(s => s.region === playerRegion);
-    const otherZone = list.filter(s => s.region !== playerRegion);
-    
-    let html = '';
-    
-    if (currentZone.length > 0) {
-        const zoneName = ZoneDB[playerRegion]?.name || playerRegion;
-        html += `<div class="transit-section">
-            <div class="transit-section-title curr">
-                <span class="section-marker"></span> ${zoneName} / LOCAL
-            </div>`;
-        currentZone.forEach(station => {
-            const gridDist = calcDistance(playerX, playerY, station.x, station.y);
-            const distKm = gridDist * 0.4;
-            const isHere = gridDist === 0;
-            const canClick = !atStation || isHere;
-            html += renderTransitItemV2(station, type, gridDist, distKm, isHere, canClick);
-        });
-        html += `</div>`;
-    }
-    
-    if (otherZone.length > 0) {
-        html += `<div class="transit-section">
-            <div class="transit-section-title othe">
-                <span class="section-marker"></span> EXTERNAL ZONES
-            </div>`;
-        otherZone.forEach(station => {
-            const gridDist = calcDistance(playerX, playerY, station.x, station.y);
-            const distKm = gridDist * 0.4;
-            const canClick = !!atStation;
-            html += renderTransitItemV2(station, type, gridDist, distKm, false, canClick);
-        });
-        html += `</div>`;
-    }
-    
-    return html;
-}
-
-function renderTransitItemV2(station, type, gridDist, distKm, isHere, canClick) {
-    const name = getTransitName(station.id);
-    const regionInfo = ZoneDB[station.region] || { name: station.region, color: '#636e72' };
-    const statusClass = isHere ? 'here' : (canClick ? 'available' : 'locked');
-    const clickAttr = canClick ? `onclick="handleTransitClick('${station.id}', ${station.x}, ${station.y}, '${type}')"` : '';
-    const bgIcon = TransitIcons[type] || '';
-    let badgeHtml = '';
-    
-    if (isHere) {
-        badgeHtml = `<div class="ti-status-badge ti-here-badge">${TransitIcons.here} <span>HERE</span></div>`;
-    } else if (canClick) {
-        const displayDist = distKm >= 10 ? distKm.toFixed(0) : distKm.toFixed(1);
-        badgeHtml = `<div class="ti-status-badge ti-dist-badge"><span class="ti-dist-val">${displayDist}</span><span class="ti-dist-unit">KM</span></div>`;
-    } else {
-        badgeHtml = `<div class="ti-status-badge ti-lock-badge">${TransitIcons.lock}</div>`;
-    }
-    
-    let accColor = '#dfe6e9';
-    if (type === 'loop') accColor = '#00b894';
-    if (type === 'air') accColor = '#0984e3';
-    if (type === 'sea') accColor = '#6c5ce7';
-    
-    return `
-    <div class="transit-item ${statusClass}" ${clickAttr} data-type="${type}" style="--acc-color:${accColor}">
-        <div class="transit-back-deco">${bgIcon}</div>
-        <div class="ti-left">
-            <div class="ti-icon">${bgIcon}</div>
-            <div class="ti-info">
-                <div class="ti-name">${name}</div>
-                <div class="ti-meta">
-                    <span class="ti-region" style="color:${regionInfo.color}">:: Zone-${station.region}</span>
-                    <span style="opacity:0.3">|</span>
-                    <span>[${station.x}, ${station.y}]</span>
-                </div>
-            </div>
-        </div>
-        <div class="ti-right">
-            ${badgeHtml}
-        </div>
-    </div>`;
-}
-
-// 切换 Tab
-window.switchTransitTab = function(tab) {
-    document.querySelectorAll('.transit-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.transit-panel').forEach(p => p.style.display = 'none');
-    
-    document.querySelector(`.transit-tab[data-tab="${tab}"]`)?.classList.add('active');
-    document.getElementById(`transit-${tab}`).style.display = 'block';
-};
-
-// 处理站点点击
-window.handleTransitClick = function(stationId, destX, destY, type) {
-    const playerX = currentMapCoords?.x || 0;
-    const playerY = currentMapCoords?.y || 0;
-    
-    // 检查是否在站点上
-    const atStation = transitData.stations.find(s => s.x === playerX && s.y === playerY);
-    const atSeaPort = transitData.seaPorts.find(s => s.x === playerX && s.y === playerY);
-    const atAirfield = transitData.airfields.find(s => s.x === playerX && s.y === playerY);
-    const isAtAnyStation = atStation || atSeaPort || atAirfield;
-    
-    const destRegion = getRegionByCoords(destX, destY);
-    const playerRegion = getRegionByCoords(playerX, playerY);
-    const stationName = getTransitName(stationId);
-    
-    // 生成 VariableEdit 更新坐标
-    const variableEditData = {
-        world_state: {
-            location: {
-                x: destX,
-                y: destY,
-                region: destRegion
-            }
-        }
-    };
-    // 确保 JSON 格式正确（包含最外层的 {}）
-    const jsonStr = JSON.stringify(variableEditData, null, 2);
-    const variableEditBlock = `<VariableEdit>\n${jsonStr}\n</VariableEdit>`;
-    
-    // 验证格式
-    if (!jsonStr.startsWith('{') || !jsonStr.endsWith('}')) {
-        console.error('[TRANSIT] VariableEdit JSON 格式错误:', jsonStr);
-    }
-    
-    let promptText = '';
-    
-    // 判断是步行到站点还是搭乘交通工具
-    if (destRegion === playerRegion) {
-        // 同区域：步行前往站点
-        promptText = `【前往站点】
-从: 当前位置 [${playerX}, ${playerY}]
-至: ${stationName} [${destX}, ${destY}]
-方式: 步行
-区域: ${ZoneDB[destRegion]?.name || destRegion}
-
-玩家步行前往 ${stationName}。
-
-${variableEditBlock}`;
-    } else {
-        // 跨区域：必须在站点上，搭乘交通工具
-        if (!isAtAnyStation) {
-            showCopyNotification('ACCESS DENIED', '必须在站点才能前往其他区域', false);
-            return;
-        }
-        
-        const typeName = type === 'loop' ? '环线列车' : type === 'air' ? '空运飞行' : '港口航线';
-        const fromStation = getTransitName((atStation || atSeaPort || atAirfield).id);
-        
-        promptText = `【交通移动】
-从: ${fromStation} [${playerX}, ${playerY}]
-至: ${stationName} [${destX}, ${destY}]
-方式: ${typeName}
-区域: ${ZoneDB[playerRegion]?.name || playerRegion} → ${ZoneDB[destRegion]?.name || destRegion}
-
-玩家搭乘${typeName}从 ${fromStation} 前往 ${stationName}。
-
-${variableEditBlock}`;
-    }
-
-    // 复制到剪贴板（使用兼容 iframe 的方法）
-    const actionType = destRegion === playerRegion ? '步行' : (type === 'loop' ? '环线' : type === 'air' ? '空运' : '海运');
-    
-    // 创建临时 textarea 元素
-    const textarea = document.createElement('textarea');
-    textarea.value = promptText;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.select();
-    
-    try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-            showCopyNotification('ROUTE COPIED', `${actionType} → ${stationName}`, true);
-        } else {
-            showCopyNotification('COPY FAILED', '无法复制到剪贴板', false);
-        }
-    } catch (err) {
-        console.error('[TRANSIT] 复制失败:', err);
-        showCopyNotification('COPY FAILED', '无法复制到剪贴板', false);
-    } finally {
-        document.body.removeChild(textarea);
-    }
-};
-
-/* ============================================================
-   RENDER SOCIAL LIST (NPC grid)
-   ============================================================ */
-function renderSocialList() {
-    const socialPage = document.getElementById('pg-social');
-    if (!socialPage) return;
-
-    const npcs = db?.world_state?.npcs || {};
-    const npcKeys = Object.keys(npcs);
-    const count = npcKeys.length;
-    
-    // 按好感度从高到低排序
-    npcKeys.sort((a, b) => {
-        const loveA = npcs[a]?.love ?? 0;
-        const loveB = npcs[b]?.love ?? 0;
-        const stageA = npcs[a]?.stage ?? 0;
-        const stageB = npcs[b]?.stage ?? 0;
-        
-        // 先按 stage 排序，再按 love 排序
-        if (stageB !== stageA) {
-            return stageB - stageA;
-        }
-        return loveB - loveA;
-    });
-    
-    let gridHtml = `<div id="social-grid-view">`;
-    npcKeys.forEach(key => {
-        gridHtml += createNPCCard(key, npcs[key]);
-    });
-    gridHtml += `</div>`;
-
-    socialPage.innerHTML = `
-        <div class="team-header-dash">
-             <div class="th-title">RELATION NETWORK</div>
-             <div class="th-status-grp">
-                 <div class="th-count">${count} <small>CONNECTIONS</small></div>
-             </div>
-        </div>
-        ${gridHtml}
-    `;
-}
-
-function createNPCCard(key, npcData) {
-    const stage = (npcData?.stage ?? 0).toString();
-    const loveVal = npcData?.love ?? 0;
-    const meta = RelationMeta[stage] || RelationMeta['0'];
-    const portraitUrl = getTrainerSprite(key);
-    const percent = Math.min(100, Math.max(0, (loveVal / 255) * 100));
-    const displayName = key.charAt(0).toUpperCase() + key.slice(1);
-    
-    // 0 好感度显示为 "?"（未解锁）
-    const isLocked = loveVal === 0 && stage === '0';
-    const displayLove = isLocked ? '?' : loveVal;
-    const displayLabel = isLocked ? 'UNKNOWN' : meta.label;
-
-    const bondInfo = BondManifest[key.toLowerCase()];
-    let badgeHtml = '';
-    if (bondInfo) {
-        const bondState = db?.player?.bonds || {};
-        const isUnlocked = bondState[bondInfo.key] === true;
-        const badgeState = isUnlocked ? 'unlocked' : 'locked';
-        badgeHtml = `
-            <div class="npc-bond-badge ${badgeState}" title="${bondInfo.label}${isUnlocked ? ' Active' : ' Locked'}">
-                <img class="nb-icon-img"
-                     src="${bondInfo.icon}"
-                     alt="${bondInfo.label}"
-                     loading="lazy"
-                     onerror="this.style.display='none';">
-                <span class="nb-bg"></span>
-            </div>
-        `;
-    }
-
-    return `
-    <div class="npc-card ${isLocked ? 'locked' : ''}" data-stage="${stage}" style="--r-color:${meta.color}" title="${meta.desc}">
-        <div class="npc-portrait">
-            <img src="${portraitUrl}" loading="lazy" alt="${displayName}"
-                 onerror="this.src='https://img.pokemondb.net/sprites/black-white/anim/normal/unown-i.gif'; this.style.opacity='0.25'"
-                 style="${isLocked ? 'filter:grayscale(1) brightness(0.7);' : ''}">
-        </div>
-        ${badgeHtml}
-        <div class="npc-info-shade">
-            <div class="n-header">
-                <span class="n-name">${displayName}</span>
-                <span class="n-stage-icon">${isLocked ? '❓' : meta.icon}</span>
-            </div>
-            <div class="n-bar-box">
-                <div class="n-bar-label">
-                    <span style="color:${meta.color}">${displayLabel}</span>
-                    <span>${displayLove}${isLocked ? '' : '<small style="opacity:0.5;font-weight:500;"> pts</small>'}</span>
-                </div>
-                <div class="progress-track" style="background:${meta.light}">
-                    <div class="progress-fill" style="width:${percent}%"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    `;
-}
-
-const SpriteAlias = {
-    'hex': 'hexmaniac-gen6',
-    'juliana': 'juliana-s',
-    'nemona': 'nemona-s'
-};
-
-function getTrainerSprite(npcName) {
-    if (!npcName) {
-        return 'https://img.pokemondb.net/sprites/black-white/anim/normal/unown-q.gif';
-    }
-    let slug = npcName.toLowerCase().trim();
-    if (SpriteAlias[slug]) {
-        slug = SpriteAlias[slug];
-    }
-    return `https://play.pokemonshowdown.com/sprites/trainers/${slug}.png`;
-}
 
 /* ============================================================
    ERA DATA BRIDGE - 从酒馆 ERA 系统读取数据
@@ -1255,8 +641,6 @@ const DefaultSettings = {
     enableClash: true,
     enableEnvironment: true
 };
-
-let statusClockTimer = null;
 
 // 获取父窗口的事件系统（iframe 内部需要通过 parent 访问）
 function getParentWindow() {
@@ -1278,15 +662,9 @@ window.addEventListener('message', function(event) {
             window.eraData = db;
             console.log('[PKM] ✓ ERA 数据已更新', db.player?.name);
             
-            // 先更新坐标，再渲染
-            if (typeof updateCoordsFromEra === 'function') updateCoordsFromEra();
-            
             // 刷新界面
             if (typeof renderDashboard === 'function') renderDashboard();
             if (typeof renderPartyList === 'function') renderPartyList();
-            
-            // 转发 ERA 数据到 map iframe
-            forwardEraToMap(event.data);
         }
     } else if (event.data.type === 'PKM_REFRESH') {
         console.log('[PKM] 收到刷新请求 (postMessage)');
@@ -1296,21 +674,6 @@ window.addEventListener('message', function(event) {
             
             // 使用防抖避免频繁刷新导致卡顿
             handleRefreshDebounced(event.data);
-        }
-    } else if (event.data.type === 'MAP_RESIZE') {
-        // 收到外部容器 resize 消息，转发给 map iframe
-        console.log('[PKM] 收到 MAP_RESIZE 消息，转发给 map iframe');
-        const mapIframe = document.getElementById('map-iframe');
-        if (mapIframe && mapIframe.contentWindow) {
-            mapIframe.contentWindow.postMessage({ type: 'MAP_RESIZE' }, '*');
-        }
-    } else if (event.data.type === 'PKM_EXIT_MAP_FULLSCREEN') {
-        // 收到退出全屏消息，退出 MAP 全屏模式
-        console.log('[PKM] 收到退出全屏消息');
-        const modal = document.getElementById('map-modal');
-        if (modal && modal.classList.contains('fullscreen')) {
-            modal.classList.remove('fullscreen');
-            document.body.classList.remove('map-fullscreen-active');
         }
     }
 });
@@ -1327,36 +690,16 @@ function handleRefreshDebounced(eventData) {
     refreshDebounceTimer = setTimeout(() => {
         console.log('[PKM] 执行防抖刷新...');
         
-        // 先更新坐标，再渲染
-        if (typeof updateCoordsFromEra === 'function') updateCoordsFromEra();
         if (typeof ensureSettingsDefaults === 'function') ensureSettingsDefaults();
         
         // 刷新所有界面
         if (typeof renderDashboard === 'function') renderDashboard();
         if (typeof renderPartyList === 'function') renderPartyList();
-        if (typeof renderSocialList === 'function') renderSocialList();
         if (typeof renderSettings === 'function') renderSettings();
         if (typeof renderBoxPage === 'function') renderBoxPage();
-        if (typeof updateClock === 'function') updateClock();
-        
-        // 转发 ERA 数据到 map iframe
-        forwardEraToMap(eventData);
         
         refreshDebounceTimer = null;
     }, 100);
-}
-
-// 转发 ERA 数据到 map iframe
-function forwardEraToMap(message) {
-    const mapIframe = document.getElementById('map-iframe');
-    if (mapIframe && mapIframe.contentWindow) {
-        try {
-            mapIframe.contentWindow.postMessage(message, '*');
-            console.log('[PKM] ✓ 已转发 ERA 数据到 map iframe');
-        } catch (e) {
-            // map iframe 可能未加载
-        }
-    }
 }
 
 // 加载 ERA 数据到 db（从父窗口注入的 window.eraData 获取）
@@ -1482,9 +825,6 @@ function initApp() {
     // 先加载 ERA 数据
     loadEraData();
     ensureSettingsDefaults();
-    
-    // 先从 ERA 更新坐标（在渲染前）
-    updateCoordsFromEra();
 
     // 初始化悬浮状态栏
     initStickyStatusBar();
@@ -1492,27 +832,8 @@ function initApp() {
     // 然后渲染 UI
     renderDashboard();
     renderPartyList();
-    renderSocialList();
     renderSettings();
     renderBoxPage();
-    
-    // 注意：PKM_REFRESH 消息监听已在全局 message 事件处理器中处理（第 703 行）
-    // 不要在这里重复绑定，否则会导致多次渲染和卡顿
-}
-
-// 从 ERA 数据更新坐标显示
-function updateCoordsFromEra() {
-    if (db && db.world_state && db.world_state.location) {
-        const loc = db.world_state.location;
-        if (typeof loc.x === 'number' && typeof loc.y === 'number') {
-            currentMapCoords = {
-                x: loc.x,
-                y: loc.y
-            };
-            updateCoordsDisplay(currentMapCoords);
-            console.log('[PKM] 从 ERA 更新坐标:', currentMapCoords);
-        }
-    }
 }
 
 /* ============================================================
@@ -1528,21 +849,10 @@ function initStickyStatusBar() {
     const bar = document.createElement('div');
     bar.id = 'sticky-status-bar';
     bar.className = 'p-status-bar';
-    // 计算信号强度
-    const playerX = db?.world_state?.location?.x || 0;
-    const playerY = db?.world_state?.location?.y || 0;
-    const signalStatus = isInSignalCoverage(playerX, playerY);
-    let signalBars = 1; // 默认1格
-    if (signalStatus.covered) {
-        if (signalStatus.reason === 'ZENITH_FULL_COVERAGE') {
-            signalBars = 4; // Z区满格
-        } else {
-            signalBars = 4; // PC终端范围内也满格
-        }
-    }
     
-    const signalBarsHTML = Array.from({length: 4}, (_, i) => 
-        `<div class="n-bar ${i < signalBars ? 'active' : ''}"></div>`
+    // 默认满格信号
+    const signalBarsHTML = Array.from({length: 4}, () => 
+        `<div class="n-bar active"></div>`
     ).join('');
     
     bar.innerHTML = `
@@ -1551,7 +861,11 @@ function initStickyStatusBar() {
                 <div class="net-signal">
                     ${signalBarsHTML}
                 </div>
-                <span class="net-label">R-NET</span>
+                <div class="net-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
             </div>
             <div class="back-trigger" onclick="goBackToHome()">
                 <svg class="back-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -1560,8 +874,6 @@ function initStickyStatusBar() {
                 <span class="back-txt">Back</span>
             </div>
         </div>
-
-        <div class="ps-center" id="sys-clock">12:00</div>
 
         <div class="ps-right">
             <span class="batt-val">94%</span>
@@ -1572,49 +884,6 @@ function initStickyStatusBar() {
     `;
 
     frame.insertAdjacentElement('afterbegin', bar);
-
-    updateClock();
-    if (statusClockTimer) clearInterval(statusClockTimer);
-    statusClockTimer = setInterval(updateClock, 60 * 1000);
-}
-
-const PERIOD_LABELS_EN = {
-    '黎明': 'Dawn',
-    '早晨': 'Morning',
-    '正午': 'Noon',
-    '下午': 'Afternoon',
-    '傍晚': 'Evening',
-    '夜晚': 'Night',
-    '午夜': 'Midnight',
-    dawn: 'Dawn',
-    morning: 'Morning',
-    noon: 'Noon',
-    afternoon: 'Afternoon',
-    evening: 'Evening',
-    night: 'Night',
-    midnight: 'Midnight'
-};
-
-function getEnglishPeriodLabel(period) {
-    if (!period) return 'Unknown';
-    if (PERIOD_LABELS_EN[period]) return PERIOD_LABELS_EN[period];
-    const lower = typeof period === 'string' ? period.toLowerCase() : '';
-    return PERIOD_LABELS_EN[lower] || period;
-}
-
-function updateClock() {
-    const clockEl = document.getElementById('sys-clock');
-    if (!clockEl) return;
-
-    // 使用 ERA 游戏时间而非现实时间
-    const timeData = db?.world_state?.time;
-    if (timeData && timeData.period) {
-        const dayNum = timeData.derived?.dayOfYear || 1;
-        const periodLabel = getEnglishPeriodLabel(timeData.period);
-        clockEl.textContent = `DAY${dayNum}-${periodLabel}`;
-    } else {
-        clockEl.textContent = 'DAY1-Morning';
-    }
 }
 
 function renderPartyList() {
@@ -2051,8 +1320,6 @@ function switchPage(targetId, btn) {
         renderDashboard();
     } else if (targetId === 'party') {
         renderPartyList();
-    } else if (targetId === 'social') {
-        renderSocialList();
     } else if (targetId === 'settings') {
         renderSettings();
     }
@@ -2076,8 +1343,6 @@ window.openAppPage = function(pageId) {
             renderBoxPage();
         } else if (pageId === 'party') {
             renderPartyList();
-        } else if (pageId === 'social') {
-            renderSocialList();
         } else if (pageId === 'settings') {
             renderSettings();
         }
@@ -2173,31 +1438,9 @@ async function renderBoxPage() {
     }
     console.log('[BOX] db.player.box =', db?.player?.box);
     
-    // 确保交通数据已加载（包含 PC_Terminal 位置）
-    if (!transitData.loaded) {
-        await loadTransitData();
-    }
-
-    // A. 信号覆盖判定（基于 PC_Terminal 信号塔）
-    // 规则：Z区全覆盖 OR 在任意 PC_Terminal 的 3 格范围内
-    const locData = db?.world_state?.location;
-    const playerX = locData?.x ?? 0;
-    const playerY = locData?.y ?? 0;
-    const currentRegion = getRegionByCoords(playerX, playerY);
-    const zoneName = ZoneDB[currentRegion]?.label || 'Unknown Zone';
-    
-    // 检查信号覆盖
-    boxState.signalStatus = isInSignalCoverage(playerX, playerY);
-    boxState.isLocked = !boxState.signalStatus.covered;
-    
-    console.log('[BOX] 信号状态:', boxState.signalStatus);
-    
-    // 添加/移除 locked class
-    if (boxState.isLocked) {
-        boxPage.classList.add('locked');
-    } else {
-        boxPage.classList.remove('locked');
-    }
+    // Mini版本：始终允许访问BOX（无信号限制）
+    boxState.isLocked = false;
+    boxPage.classList.remove('locked');
 
     // B. 初始化 HTML 框架
     let html = `
@@ -2243,51 +1486,6 @@ async function renderBoxPage() {
         }
     }
     html += `</div></div>`;
-
-    // C. 信号丢失覆盖层
-    if (boxState.isLocked) {
-        const status = boxState.signalStatus;
-        const nearestDist = status.nearestDistance !== Infinity 
-            ? (status.nearestDistance * 0.4).toFixed(1) 
-            : '???';
-        const nearestCoords = status.nearestTerminal 
-            ? `[${status.nearestTerminal.x}, ${status.nearestTerminal.y}]` 
-            : '[N/A]';
-
-        html += `
-        <div class="box-offline-overlay">
-            <div class="boo-bg-deco">SIGNAL LOST</div>
-            <div class="boo-content">
-                <div class="boo-icon-wrap">
-                    <svg class="boo-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <circle cx="12" cy="12" r="10" stroke-opacity="0.2"></circle>
-                        <path d="M1 1l22 22" class="slash-line"></path>
-                        <path d="M4.93 4.93L19.07 19.07" stroke-width="8" stroke="#fff"></path>
-                        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" opacity="0.6"></path>
-                        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
-                        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
-                        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
-                        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
-                    </svg>
-                </div>
-                <div class="boo-title">SIGNAL LOST</div>
-                <span class="boo-code">/// 0x0000_OUT_OF_RANGE ///</span>
-                <div class="boo-alert-box">
-                    <div class="boo-main-reason">Box-Link 信号塔超出覆盖范围</div>
-                    <div class="boo-hint">
-                        当前位置 [${playerX}, ${playerY}] 不在任何 PC_Terminal 信号范围内<br>
-                        最近信号塔: ${nearestCoords} (${nearestDist} km)<br>
-                        信号覆盖半径: ${PC_SIGNAL_RADIUS * 0.4} km
-                    </div>
-                </div>
-            </div>
-            <div class="boo-terminal">
-                <span>> Scanning for Box-Link terminals... [${transitData.pcTerminals?.length || 0}] found.</span>
-                <span>> Nearest signal: ${nearestDist} km away. Required: ≤${PC_SIGNAL_RADIUS * 0.4} km.</span>
-                <span>> Connection failed: ERR_SIGNAL_WEAK</span>
-            </div>
-        </div>`;
-    }
 
     boxPage.innerHTML = html;
 }
@@ -2922,15 +2120,6 @@ function renderDashboard() {
     const player = db?.player || {};
     const world = db?.world_state || {};
     const playerName = player.name || 'TRAINER';
-    // location 可能是对象 {x, y} 或字符串
-    const locData = world.location;
-    const currLocCode = (typeof locData === 'string' 
-        ? locData 
-        : (locData?.x !== undefined && locData?.y !== undefined 
-            ? getQuadrantFromCoords(locData.x, locData.y) 
-            : 'Z')
-    ).toUpperCase();
-    const currZone = ZoneDB[currLocCode] || { name: 'UNKNOWN', label: '---', color: '#b2bec3', shadow: 'rgba(0,0,0,0.1)' };
 
     // 计算 Box 使用情况
     const boxCount = Object.keys(player.box || {}).length;
@@ -2988,7 +2177,6 @@ function renderDashboard() {
                 <div class="hero-welcome">SYSTEM READY.</div>
                 <div class="hero-name">${playerName}</div>
                 <div class="hero-meta-row">
-                    <div class="hero-zone" style="background:${currZone.color};box-shadow:2px 2px 0 ${currZone.shadow};"><span>LOC: ZONE-${currLocCode}</span></div>
                     <div class="hero-bag-btn refined" onclick="triggerMockBag(this)">
                         <div class="hbb-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -3034,7 +2222,7 @@ function renderDashboard() {
             </div>
 
             <!-- BOX: 战术青色 (Cyber Teal) -->
-            <div class="live-tile box-tactical theme-teal" onclick="handleTileClick('box')">
+            <div class="live-tile box-tactical theme-teal tile-box" onclick="handleTileClick('box')">
                  <div class="t-decoration">
                     <div class="t-watermark">${SystemIcons.box}</div>
                     <div class="t-stripe"></div>
@@ -3051,120 +2239,22 @@ function renderDashboard() {
                  </div>
             </div>
 
-            <!-- UNIT: 战术紫色 (Deep Violet) -->
-            <div class="live-tile box-tactical theme-purple" onclick="handleTileClick('social')">
+            <!-- SETTINGS: 战术灰色 (Config Gray) -->
+            <div class="live-tile box-tactical theme-slate tile-settings" onclick="handleTileClick('settings')">
                  <div class="t-decoration">
-                    <div class="t-watermark">${SystemIcons.unite}</div>
+                    <div class="t-watermark">${SystemIcons.settings}</div>
                     <div class="t-stripe"></div>
                     <div class="t-glow"></div>
                  </div>
                  <div class="t-content">
                     <div class="t-header">
-                        <div class="t-icon-sm">${SystemIcons.unite}</div>
+                        <div class="t-icon-sm">${SystemIcons.settings}</div>
                     </div>
                     <div class="t-main-data">
-                        <div class="t-num">LINK</div>
-                        <div class="t-label">RELATION</div>
+                        <div class="t-num">SYS</div>
+                        <div class="t-label">CONFIG</div>
                     </div>
                  </div>
-            </div>
-
-            <!-- MAP: 战术蓝色 (坐标点修正版) -->
-            <div class="live-tile box-tactical theme-blue tactical-map-pro tile-tall-map" onclick="openMapSystem()">
-                <div class="t-decoration">
-                    <div class="map-bg-grid"></div>
-                    <div class="t-watermark logo-mode">${SystemIcons.map}</div>
-                </div>
-                <div class="t-content">
-                    <div class="t-header" style="border-bottom-style: dashed;">
-                        <div class="t-icon-sm">${SystemIcons.map}</div>
-                    </div>
-                    <div class="t-map-visual">
-                        <div class="radar-ping"></div>
-                        <div class="map-radar-ring"></div>
-                        <div class="map-axis-x"></div>
-                        <div class="map-axis-y"></div>
-                        <div class="map-point-dot"></div>
-                        <div class="corner-L-bra top-l"></div>
-                        <div class="corner-L-bra bot-r"></div>
-                    </div>
-                    <div class="t-main-data map-hud-layout">
-                        <div class="mh-bar"></div>
-                        <div class="mh-col">
-                            <div class="mh-zone">ZONE-${currLocCode}</div>
-                            <div class="mh-coords" id="dashboard-map-coords">
-                                <span class="coord-display">[${currentMapCoords.x}, ${currentMapCoords.y}]</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 右侧堆叠区：战术插片 (Tactical Blades) -->
-            <div class="stack-col">
-                <div class="live-tile box-tactical theme-amber small-h user-select-none" onclick="handleTileClick('transit')">
-                    <div class="t-decoration">
-                         <div class="t-watermark">${SystemIcons.transit}</div>
-                         <div class="t-stripe"></div>
-                         <div class="t-glow" style="--glow-c:rgba(253, 203, 110, 0.4)"></div>
-                    </div>
-                    <div class="mini-header-icon">
-                        ${SystemIcons.transit}
-                    </div>
-                    <div class="mini-body">
-                        <span class="mini-title-big">TRANSIT</span>
-                    </div>
-                </div>
-
-                <div class="live-tile box-tactical theme-slate small-h user-select-none disabled">
-                    <div class="t-decoration">
-                         <div class="t-watermark">${SystemIcons.gig}</div>
-                         <div class="t-stripe"></div>
-                         <div class="t-glow"></div>
-                    </div>
-                    <div class="mini-header-icon">
-                        ${SystemIcons.gig}
-                    </div>
-                    <div class="mini-body">
-                         <span class="mini-title-big" style="color: #95a5a6;">WORK</span>
-                         <span class="locked-badge">LOCKED</span>
-                    </div>
-                </div>
-            </div>
-          
-            <!-- 底部：微型战术模块 (Mini Tactical Docks) -->
-            <div class="bottom-dock-layer">
-                <div class="live-tile box-tactical dock-mode dock-news disabled">
-                    <div class="t-decoration">
-                        <div class="t-stripe" style="opacity:0.4"></div>
-                    </div>
-                    <div class="dock-content-row">
-                        <div class="dock-icon">${SystemIcons.news}</div>
-                        <span class="dock-title">NEWS</span>
-                        <span class="locked-badge-small">LOCKED</span>
-                    </div>
-                </div>
-
-                <div class="live-tile box-tactical dock-mode dock-mart disabled">
-                    <div class="t-decoration">
-                        <div class="t-stripe" style="opacity:0.4"></div>
-                        <div class="t-glow" style="--glow-c:rgba(0, 184, 148, 0.4)"></div>
-                    </div>
-                    <div class="dock-content-row">
-                        <div class="dock-icon">${SystemIcons.mart}</div>
-                        <span class="dock-title">MART</span>
-                        <span class="locked-badge-small">LOCKED</span>
-                    </div>
-                </div>
-
-                <div class="live-tile box-tactical dock-mode dock-config" onclick="handleTileClick('settings')">
-                    <div class="t-decoration">
-                    </div>
-                    <div class="dock-content-row">
-                        <div class="dock-icon">${SystemIcons.settings}</div>
-                        <span class="dock-title">SYS.CFG</span>
-                    </div>
-                </div>
             </div>
 
         </div>
@@ -3191,379 +2281,13 @@ window.handleTileClick = function(tileId) {
     // 根据磁贴ID跳转到对应页面
     const pageMap = {
         'box': 'box',
-        'social': 'social',
         'settings': 'settings',
-        'party': 'party',
-        'transit': 'transit'
+        'party': 'party'
     };
     
     const targetPage = pageMap[tileId];
     if (targetPage) {
         openAppPage(targetPage);
-        // 如果是 transit 页面，需要渲染
-        if (targetPage === 'transit') {
-            renderTransitPage();
-        }
     }
 };
-
-/* ============================================================
-   MAP 系统接入 - 坐标管理与 VariableEdit
-   ============================================================ */
-
-// 当前坐标缓存
-let currentMapCoords = { x: 0, y: 0 };
-
-// 根据坐标自动判断象限
-function getQuadrantFromCoords(x, y) {
-    // Z区（中枢区）：中心 6x6 范围
-    if (Math.abs(x) <= 6 && Math.abs(y) <= 6) return "Z";
-    // N区（霓虹区）：东南象限
-    if (x > 0 && y < 0) return "N";
-    // B区（海滨区）：西南象限
-    if (x < 0 && y < 0) return "B";
-    // S区（暗影区）：东北象限
-    if (x > 0 && y > 0) return "S";
-    // A区（极诣区）：西北象限
-    if (x < 0 && y > 0) return "A";
-    return "Z";
-}
-
-// 更新 Dashboard 磁贴坐标显示
-function updateCoordsDisplay(coords) {
-    const el = document.getElementById('dashboard-map-coords');
-    if (el && coords) {
-        el.innerHTML = `<span class="coord-display">[${coords.x}, ${coords.y}]</span>`;
-    }
-}
-
-// 打开 MAP 系统
-window.openMapSystem = function() {
-    console.log('[PKM] 打开地图系统...');
-    
-    // 获取手机容器
-    const container = document.querySelector('.ver-dawn-frame');
-    if (!container) {
-        console.error('[PKM] 找不到手机容器 .ver-dawn-frame');
-        return;
-    }
-    
-    // 创建模态框（相对于手机容器）
-    let modal = document.getElementById('map-modal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'map-modal';
-        modal.className = 'map-modal';
-        modal.innerHTML = `
-            <div class="map-modal-header">
-                <span class="map-modal-title">TACTICAL MAP</span>
-                <div class="map-modal-actions">
-                    <button class="map-modal-fullscreen" onclick="toggleMapFullscreen()" title="全屏">⛶</button>
-                    <button class="map-modal-close" onclick="closeMapSystem()">✕</button>
-                </div>
-            </div>
-            <iframe id="map-iframe" frameborder="0"></iframe>
-        `;
-        container.appendChild(modal);
-        
-        // 加载 MAP iframe
-        const iframe = document.getElementById('map-iframe');
-        
-        // 使用外部文件加载（更稳定）
-        console.log('[PKM] 加载 MAP 文件');
-        iframe.src = 'map/index.html';
-        iframe.onload = function() {
-            setupMapCallbacks(iframe);
-            
-            // 加载完成后立即发送当前 ERA 数据
-            if (db && db.player) {
-                iframe.contentWindow.postMessage({
-                    type: 'PKM_ERA_DATA',
-                    data: db
-                }, '*');
-                console.log('[PKM] ✓ 已发送 ERA 数据到新加载的 map iframe');
-            }
-        };
-    }
-    
-    modal.classList.add('active');
-};
-
-// 关闭 MAP 系统
-window.closeMapSystem = function() {
-    const modal = document.getElementById('map-modal');
-    if (!modal) return;
-    
-    // 如果在全屏模式，先退出全屏
-    if (modal.classList.contains('fullscreen')) {
-        // 通知父级窗口退出全屏
-        const message = { type: 'PKM_MAP_FULLSCREEN', fullscreen: false };
-        try {
-            if (window.parent && window.parent !== window) {
-                window.parent.postMessage(message, '*');
-            }
-            if (window.top && window.top !== window && window.top !== window.parent) {
-                window.top.postMessage(message, '*');
-            }
-        } catch (e) {
-            console.error('[PKM] postMessage 发送失败:', e);
-        }
-        modal.classList.remove('fullscreen');
-        document.body.classList.remove('map-fullscreen-active');
-        console.log('[PKM] MAP 关闭时退出全屏');
-    }
-    
-    // 关闭 MAP 模态框
-    modal.classList.remove('active');
-};
-
-// 切换 MAP 全屏模式
-window.toggleMapFullscreen = function() {
-    const modal = document.getElementById('map-modal');
-    if (!modal) return;
-    
-    const isFullscreen = modal.classList.toggle('fullscreen');
-    document.body.classList.toggle('map-fullscreen-active', isFullscreen);
-    
-    // 更新按钮图标
-    const btn = modal.querySelector('.map-modal-fullscreen');
-    if (btn) {
-        btn.textContent = isFullscreen ? '⛶' : '⛶';
-        btn.title = isFullscreen ? '退出全屏' : '全屏';
-    }
-    
-    // 通知父级窗口调整 PKM 容器大小（用于 tavern-inject.js）
-    // 与 script.js 中 PKM_SET_LEADER 发送方式一致
-    const message = {
-        type: 'PKM_MAP_FULLSCREEN',
-        fullscreen: isFullscreen
-    };
-    try {
-        if (window.parent && window.parent !== window) {
-            window.parent.postMessage(message, '*');
-            console.log('[PKM] ✓ 已发送全屏消息到 parent');
-        }
-        if (window.top && window.top !== window && window.top !== window.parent) {
-            window.top.postMessage(message, '*');
-            console.log('[PKM] ✓ 已发送全屏消息到 top');
-        }
-    } catch (e) {
-        console.error('[PKM] postMessage 发送失败:', e);
-    }
-    
-    // 通知 map iframe 调整大小
-    const iframe = document.getElementById('map-iframe');
-    if (iframe && iframe.contentWindow) {
-        setTimeout(() => {
-            iframe.contentWindow.postMessage({ type: 'MAP_RESIZE' }, '*');
-        }, 100);
-    }
-    
-    console.log('[PKM] MAP 全屏模式:', isFullscreen ? '开启' : '关闭');
-};
-
-// 设置 MAP iframe 的回调
-function setupMapCallbacks(iframe) {
-    try {
-        const mapWindow = iframe.contentWindow;
-        
-        // 设置位置变更回调
-        mapWindow.onPlayerLocationChange = function(coords) {
-            console.log('[PKM] 收到位置变更:', coords);
-            currentMapCoords = { x: coords.x, y: coords.y };
-            updateCoordsDisplay(currentMapCoords);
-            
-            // 更新 ERA 数据
-            if (db && db.world_state) {
-                db.world_state.location = {
-                    x: coords.x,
-                    y: coords.y
-                };
-            }
-            
-            // 发送 VariableEdit 到酒馆
-            sendLocationVariableEdit(coords);
-            
-            // 注入位置上下文到世界书
-            injectLocationContext();
-        };
-        
-        // 设置地图加载完成回调
-        mapWindow.onMapReady = function() {
-            console.log('[PKM] 地图加载完成，设置初始位置');
-            
-            // 从 ERA 变量设置初始位置
-            const eraLocation = db?.world_state?.location;
-            if (eraLocation && typeof eraLocation === 'object' && typeof eraLocation.x === 'number') {
-                console.log('[PKM] 从 ERA 变量设置地图初始位置:', eraLocation);
-                if (typeof mapWindow.setPlayerPosition === 'function') {
-                    mapWindow.setPlayerPosition(eraLocation);
-                }
-            }
-            
-            // 获取初始坐标
-            if (typeof mapWindow.getPlayerDisplayCoords === 'function') {
-                const initialCoords = mapWindow.getPlayerDisplayCoords();
-                currentMapCoords = initialCoords;
-                updateCoordsDisplay(initialCoords);
-            }
-            
-            // 初始注入位置上下文
-            console.log('[PKM] 触发初始位置上下文注入');
-            injectLocationContext();
-        };
-        
-        console.log('[PKM] MAP 回调设置完成');
-    } catch (e) {
-        console.warn('[PKM] 无法设置 MAP 回调:', e);
-    }
-}
-
-// 发送位置变更到 ERA 系统
-function sendLocationVariableEdit(coords) {
-    const payload = {
-        world_state: {
-            location: {
-                x: coords.x,
-                y: coords.y
-            }
-        }
-    };
-    
-    // 通过父窗口回调发送（如果存在）
-    if (window.pkmUpdateLocationCallback) {
-        window.pkmUpdateLocationCallback(payload);
-    }
-    
-    console.log('[PKM] 位置 VariableEdit 已准备:', JSON.stringify(payload));
-}
-
-/* ============================================================
-   位置上下文注入系统 - 注入到酒馆世界书 (深度0)
-   ============================================================ */
-
-const LOCATION_INJECT_ID = 'pkm_location_context';
-
-/**
- * 生成位置上下文文本
- * 调用 MAP iframe 中的 LocationContextGenerator
- */
-function generateLocationContextText() {
-    try {
-        const iframe = document.getElementById('map-iframe');
-        if (!iframe || !iframe.contentWindow) {
-            console.warn('[PKM] MAP iframe 不可用，无法生成位置上下文');
-            return null;
-        }
-        
-        const mapWindow = iframe.contentWindow;
-        
-        // 检查 LocationContextGenerator 是否可用
-        if (!mapWindow.LocationContextGenerator) {
-            console.warn('[PKM] LocationContextGenerator 不可用');
-            return null;
-        }
-        
-        // 获取当前玩家坐标（内部坐标）
-        if (!mapWindow.playerState) {
-            console.warn('[PKM] playerState 不可用');
-            return null;
-        }
-        
-        const gx = mapWindow.playerState.gx;
-        const gy = mapWindow.playerState.gy;
-        
-        // 生成完整的位置上下文文本
-        const contextText = mapWindow.LocationContextGenerator.generateContextText(gx, gy);
-        
-        return contextText;
-    } catch (e) {
-        console.error('[PKM] 生成位置上下文失败:', e);
-        return null;
-    }
-}
-
-/**
- * 注入位置上下文到酒馆世界书
- * 使用 SillyTavern 的 injectPrompts API
- */
-function injectLocationContext() {
-    const contextText = generateLocationContextText();
-    
-    if (!contextText) {
-        console.log('[PKM] 无位置上下文可注入');
-        return;
-    }
-    
-    // 包装为 XML 标签格式
-    const promptContent = `<location_context>
-${contextText}
-</location_context>`;
-    
-    // 通过 postMessage 发送注入请求给酒馆脚本（跨域兼容）
-    try {
-        const parentWindow = getParentWindow();
-        
-        // 优先使用 postMessage（GitHub Pages 模式）
-        if (parentWindow !== window) {
-            parentWindow.postMessage({
-                type: 'PKM_INJECT_LOCATION',
-                id: LOCATION_INJECT_ID,
-                position: 'after_wi_scan',
-                depth: 0,
-                content: promptContent
-            }, '*');
-            console.log('[PKM] ✓ 位置上下文注入请求已发送 (postMessage)');
-        } else {
-            // 本地开发模式：直接调用 API
-            if (typeof injectPrompts === 'function') {
-                if (typeof uninjectPrompts === 'function') {
-                    uninjectPrompts([LOCATION_INJECT_ID]);
-                }
-                injectPrompts([{
-                    id: LOCATION_INJECT_ID,
-                    position: 'after_wi_scan',
-                    depth: 0,
-                    content: promptContent
-                }]);
-                console.log('[PKM] ✓ 位置上下文已注入到世界书 (本地模式)');
-            } else {
-                console.warn('[PKM] 无法注入位置上下文：injectPrompts API 不可用');
-            }
-        }
-    } catch (e) {
-        console.error('[PKM] 位置上下文注入失败:', e);
-    }
-}
-
-/**
- * 清除位置上下文注入
- */
-function clearLocationContextInjection() {
-    try {
-        const parentWindow = getParentWindow();
-        
-        // 优先使用 postMessage（GitHub Pages 模式）
-        if (parentWindow !== window) {
-            parentWindow.postMessage({
-                type: 'PKM_CLEAR_INJECTION',
-                id: LOCATION_INJECT_ID
-            }, '*');
-            console.log('[PKM] ✓ 清除注入请求已发送 (postMessage)');
-        } else {
-            // 本地开发模式
-            if (typeof uninjectPrompts === 'function') {
-                uninjectPrompts([LOCATION_INJECT_ID]);
-                console.log('[PKM] ✓ 位置上下文注入已清除 (本地模式)');
-            }
-        }
-    } catch (e) {
-        // 忽略清除失败
-    }
-}
-
-// 暴露给外部调用
-window.injectLocationContext = injectLocationContext;
-window.clearLocationContextInjection = clearLocationContextInjection;
-window.generateLocationContextText = generateLocationContextText;
 

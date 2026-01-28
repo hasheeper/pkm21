@@ -3114,6 +3114,11 @@ body {
 .box-tactical.theme-purple {
     height: 150px !important;
 }
+
+.box-tactical.tile-box,
+.box-tactical.tile-settings {
+    height: 150px !important;
+}
 .live-tile.box-tactical::after {
     content: '';
     position: absolute;
