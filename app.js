@@ -1058,6 +1058,27 @@ window.toggleGlobalSetting = function (key) {
     }
 };
 
+// ========== Leader 切换函数 ==========
+window.toggleLeader = function(event, slotKey) {
+    if (event) event.stopPropagation();
+    
+    console.log('[PKM] toggleLeader 被调用:', slotKey);
+    
+    // 方案1: 使用回调函数（如果父窗口注入了）
+    if (window.pkmSetLeaderCallback) {
+        console.log('[PKM] 调用 pkmSetLeaderCallback');
+        window.pkmSetLeaderCallback(slotKey);
+    } else {
+        // 方案2: 使用 postMessage
+        const parentWin = window.parent || window;
+        parentWin.postMessage({
+            type: 'PKM_SET_LEADER',
+            data: { targetSlot: slotKey }
+        }, '*');
+        console.log('[PKM] 已发送 PKM_SET_LEADER postMessage:', slotKey);
+    }
+};
+
 function createCardHTML(pkm, slotIdStr) {
     if (!pkm || !pkm.name || pkm.name === null) {
         const slotNum = slotIdStr.replace("slot", "0");
