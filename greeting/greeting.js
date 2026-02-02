@@ -6,13 +6,11 @@ const GenesisData = [
     { 
         id: 1, name: 'Kanto', code: 'gen1', range: 'Lv. Cap Broken', 
         starters: [ 'bulbasaur', 'charmander', 'squirtle' ],
-        mechanics: ['enable_proficiency_cap'], 
         desc: 'Special: Proficiency / Level Break' 
     },
     { 
         id: 2, name: 'Johto', code: 'gen2', range: 'Apricorns', 
         starters: [ 'chikorita', 'cyndaquil', 'totodile' ],
-        mechanics: ['enable_proficiency_cap'], 
         desc: 'Special: Apricorn Ball Mechanics' 
     },
     { 
@@ -215,9 +213,9 @@ const Launcher = {
                     div.className = 'mb-icon';
                     div.style.background = 'transparent';
                     div.style.border = 'none';
-                    div.style.width = '24px';
-                    div.style.height = '24px';
-                    div.style.color = '#333';
+                    div.style.width = '';
+                    div.style.height = '';
+                    div.style.color = '';
                     div.title = `${meta.label} Active`;
                     div.innerHTML = getSvgIcon(meta.icon);
                     badgeContainer.appendChild(div);

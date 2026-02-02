@@ -123,7 +123,7 @@ body {
     margin-bottom: 3px;
 }
 .mb-icon {
-    width: 36px; height: 36px;
+    width: 46px; height: 46px;
     background: #f1f2f6;
     border-radius: 6px;
     color: #b2bec3;
@@ -131,7 +131,12 @@ body {
     transition: 0.2s;
     border: 1px solid #dfe6e9;
 }
-.mb-icon svg { width: 26px; height: 26px; stroke-width: 2.2; }
+.mb-icon svg { width: 34px; height: 34px; stroke-width: 2.2; }
+.sim-screen.theme-gen6 .mech-badges-row .mb-icon { color: #ffffff; }
+.sim-screen.theme-gen7 .mech-badges-row .mb-icon { color: #9fdcff; }
+.sim-screen.theme-gen8 .mech-badges-row .mb-icon { color: #ff6b6b; }
+.sim-screen.theme-hisui .mech-badges-row .mb-icon { color: #dfe4ea; }
+.sim-screen.theme-gen9 .mech-badges-row .mb-icon { color: #00cfc1; }
 .mb-icon:hover {
     color: var(--c-accent-dark);
     background: #e0fcfc;
