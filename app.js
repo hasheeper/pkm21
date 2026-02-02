@@ -492,6 +492,33 @@ function injectMovePoolStyles() {
     console.log('[MOVE_POOL] 样式由 styles.css 提供 (Ver. Dawn)');
 }
 
+const translationLookupCache = {
+    normalizedMap: null
+};
+
+function normalizeTranslationKey(key) {
+    return String(key || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '');
+}
+
+function getNormalizedTranslationValue(key) {
+    if (!key || typeof translations === 'undefined') return null;
+    if (!translationLookupCache.normalizedMap) {
+        const map = {};
+        for (const originalKey in translations) {
+            const normalizedKey = normalizeTranslationKey(originalKey);
+            if (!(normalizedKey in map)) {
+                map[normalizedKey] = translations[originalKey];
+            }
+        }
+        translationLookupCache.normalizedMap = map;
+    }
+
+    return translationLookupCache.normalizedMap[normalizeTranslationKey(key)] || null;
+}
+
 /**
  * 翻译招式名称为中文
  * @param {string} moveName - 招式英文名称
@@ -525,6 +552,11 @@ function translateMoveName(moveName) {
         const underscoreName = moveName.replace(/_/g, ' ');
         if (translations[underscoreName]) {
             return translations[underscoreName];
+        }
+
+        const normalizedResult = getNormalizedTranslationValue(moveName);
+        if (normalizedResult) {
+            return normalizedResult;
         }
     }
     
@@ -1120,7 +1152,8 @@ function createCardHTML(pkm, slotIdStr) {
     const theme = getThemeColors(speciesName);
     const itemUrl = getItemIconUrl(pkm.item);
     const itemUrlPS = getItemIconUrlPS(pkm.item);
-    const avsData = (pkm.friendship && pkm.friendship.avs) || { trust: 0, passion: 0, insight: 0, devotion: 0 };
+    // 读取 bonds 数据 (ERA 格式)
+    const bondsValue = pkm.bonds || 0;
     const maxCheck = (val) => val >= 255 ? 'maxed' : '';
     
     let displayName = pkm.nickname || pkm.name;
@@ -1196,21 +1229,9 @@ function createCardHTML(pkm, slotIdStr) {
           </div>` : '';
     const avsDashboardHtml = `
         <div class="avs-dashboard" id="avs-panel-${slotIdStr}" onclick="event.stopPropagation()">
-            <div class="avs-stat-item asi-stat-trust">
-                <span class="asi-label">TRUST</span>
-                <span class="asi-val ${maxCheck(avsData.trust)}">${avsData.trust}</span>
-            </div>
-            <div class="avs-stat-item asi-stat-passion">
-                <span class="asi-label">PASSION</span>
-                <span class="asi-val ${maxCheck(avsData.passion)}">${avsData.passion}</span>
-            </div>
-            <div class="avs-stat-item asi-stat-insight">
-                <span class="asi-label">INSIGHT</span>
-                <span class="asi-val ${maxCheck(avsData.insight)}">${avsData.insight}</span>
-            </div>
-            <div class="avs-stat-item asi-stat-devotion">
-                <span class="asi-label">DEVOTION</span>
-                <span class="asi-val ${maxCheck(avsData.devotion)}">${avsData.devotion}</span>
+            <div class="avs-stat-item asi-stat-bonds">
+                <span class="asi-label">BONDS</span>
+                <span class="asi-val ${maxCheck(bondsValue)}">${bondsValue}</span>
             </div>
         </div>
     `;

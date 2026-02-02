@@ -1017,10 +1017,10 @@ body {
 
 .avs-dashboard {
     position: absolute;
-    left: 85px;
-    right: 50px;
+    right: 55px;
     top: 50%;
     height: 52px;
+    width: 20%;
     transform: translateY(-32%) translateX(-8px) skewX(var(--s-deg));
     transform-origin: center;
     background: rgba(255, 255, 255, 0.95);
