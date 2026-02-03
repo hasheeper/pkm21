@@ -400,10 +400,9 @@ function generateMoveChangeNarrative(slotKey, moves, pkm, changedMoves) {
     
     const changeListStr = changeDescriptions.join('、');
     
-    return `[System Event: R-Sync 战术同步]
+    return `[System Event]
 > 目标: ${displayName} (Lv.${lv})
-> 战术配置已重组: ${changeListStr}
-(Guidance: 训练家利用 P-Phone 从云端引导了记忆数据。)`;
+> 技能已重组: ${changeListStr}`;
 }
 
 /**

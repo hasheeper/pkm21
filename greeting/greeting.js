@@ -1,69 +1,95 @@
+// 设置宿主 iframe 尺寸，确保在酒馆内展开显示
+(function() {
+    const hostFrame = window.frameElement;
+    function resizeHostFrame() {
+        if (!hostFrame) return;
+        const width = Math.min(window.innerWidth || 480, 480);
+        const height = 850;
+        hostFrame.style.width = width + 'px';
+        hostFrame.style.maxWidth = '100%';
+        hostFrame.style.height = height + 'px';
+        hostFrame.style.minHeight = height + 'px';
+        hostFrame.style.border = 'none';
+    }
+    resizeHostFrame();
+    window.addEventListener('resize', resizeHostFrame);
+})();
+
 /**
  * 配置数据表 (Manifest)
  * 包含 前端 UI显示用信息 & 给 AI 插入的 unlock keys
  */
 const GenesisData = [
     { 
-        id: 1, name: 'Kanto', code: 'gen1', range: 'Lv. Cap Broken', 
+        id: 1, name: 'Kanto', code: 'gen1', 
         starters: [ 'bulbasaur', 'charmander', 'squirtle' ],
         desc: 'Special: Proficiency / Level Break' 
     },
     { 
-        id: 2, name: 'Johto', code: 'gen2', range: 'Apricorns', 
+        id: 2, name: 'Johto', code: 'gen2', 
         starters: [ 'chikorita', 'cyndaquil', 'totodile' ],
         desc: 'Special: Apricorn Ball Mechanics' 
     },
     { 
-        id: 3, name: 'Hoenn', code: 'gen3', range: 'Clash', 
+        id: 3, name: 'Hoenn', code: 'gen3', 
         starters: [ 'treecko', 'torchic', 'mudkip' ],
         mechanics: ['enable_clash', 'enable_environment'], 
         desc: 'Special: Move Clash / Weather' 
     },
     { 
-        id: 4, name: 'Sinnoh', code: 'gen4', range: 'Standard', 
+        id: 4, name: 'Sinnoh', code: 'gen4', 
         starters: [ 'turtwig', 'chimchar', 'piplup' ],
         mechanics: [], 
         desc: 'Classic Battle Systems' 
     },
     { 
-        id: 5, name: 'Unova', code: 'gen5', range: 'Standard', 
+        id: 5, name: 'Unova', code: 'gen5', 
         starters: [ 'snivy', 'tepig', 'oshawott' ],
         mechanics: ['enable_environment'], 
         desc: 'Triple Battle Logic / Weather' 
     },
     { 
-        id: 6, name: 'Kalos', code: 'gen6', range: 'Mega Evo', 
+        id: 6, name: 'Kalos', code: 'gen6', 
         starters: [ 'chespin', 'fennekin', 'froakie' ],
         mechanics: ['enable_mega'], 
         desc: 'Mechanic: Mega Evolution Unlocked' 
     },
     { 
-        id: 7, name: 'Alola', code: 'gen7', range: 'Z-Move', 
+        id: 7, name: 'Alola', code: 'gen7', 
         starters: [ 'rowlet', 'litten', 'popplio' ],
         mechanics: ['enable_z_move'], 
         desc: 'Mechanic: Z-Power / Ride Pkm' 
     },
     { 
-        id: 8, name: 'Galar', code: 'gen8', range: 'Dynamax', 
+        id: 8, name: 'Galar', code: 'gen8', 
         starters: [ 'grookey', 'scorbunny', 'sobble' ],
         mechanics: ['enable_dynamax'], 
         desc: 'Mechanic: Dynamax Spots' 
     },
     { 
-        id: 0, name: 'Hisui', code: 'pla', range: 'Styles', 
+        id: 0, name: 'Hisui', code: 'pla', 
         starters: [ 'rowlet', 'cyndaquil', 'oshawott' ],
         mechanics: ['enable_styles', 'enable_clash'],
         formSuffix: '-hisui', // 用于最终数据标记
         desc: 'Specific: Agile / Strong Style Arts' 
     },
     { 
-        id: 9, name: 'Paldea', code: 'gen9', range: 'Terastal', 
+        id: 9, name: 'Paldea', code: 'gen9', 
         starters: [ 'sprigatito', 'fuecoco', 'quaxly' ],
         mechanics: ['enable_tera'], 
         desc: 'Mechanic: Tera Type Shell' 
     },
+    {
+        id: 888,
+        name: 'M9 Class',
+        code: 'wcs_locked',
+        starters: [],
+        locked: true,
+        desc: 'CLASSIFIED: Champion Rank Only',
+        teaser: 'MASTERS EIGHT'
+    },
     { 
-        id: 99, name: 'CUSTOM', code: 'custom', range: 'Any / Sandbox',
+        id: 99, name: 'CUSTOM', code: 'custom',
         starters: [],
         userDefine: true,
         mechanics: [],
@@ -119,6 +145,49 @@ const MECHANICS_DICT = [
     { key: 'enable_proficiency_cap', label: 'Level Break', desc: 'Over Level', icon: 'cap' }
 ];
 
+const DEFAULT_WORLD_SETTINGS = {
+    enableAVS: false,
+    enableCommander: false,
+    enableEVO: false,
+    enableBGM: true,
+    enableSFX: true,
+    enableClash: false,
+    enableEnvironment: true
+};
+
+const BASE_UNLOCK_STATE = MECHANICS_DICT.reduce((acc, mech) => {
+    acc[mech.key] = false;
+    return acc;
+}, {});
+
+const ANIME_UNLOCK_KEYS = ['enable_bond', 'enable_insight', 'enable_proficiency_cap'];
+
+const GEN_UNLOCK_MAP = {
+    6: ['enable_mega'],
+    7: ['enable_z_move'],
+    8: ['enable_dynamax'],
+    9: ['enable_tera'],
+    0: ['enable_styles']
+};
+
+function applySettingsMode(target, isAnimeMode) {
+    Object.entries(DEFAULT_WORLD_SETTINGS).forEach(([key, defaultVal]) => {
+        target[key] = isAnimeMode ? true : defaultVal;
+    });
+}
+
+function applyAnimeUnlocks(target, isAnimeMode) {
+    ANIME_UNLOCK_KEYS.forEach(key => {
+        target[key] = !!isAnimeMode;
+    });
+}
+
+function applyGenUnlocks(target, genId) {
+    const keys = GEN_UNLOCK_MAP[genId];
+    if (!keys) return;
+    keys.forEach(key => { target[key] = true; });
+}
+
 /**
  * 逻辑控制器
  */
@@ -127,16 +196,57 @@ const Launcher = {
         GenesisData.forEach((gen, idx) => {
             const card = document.createElement('div');
             card.className = 'gen-card';
-            if (gen.id === 0) card.style.borderBottom = '4px solid #fab1a0';
-            if (gen.id === 99) card.style.borderBottom = '4px solid #6c5ce7';
-            card.innerHTML = `
-                <div class="gc-inner">
-                    <div class="gc-num">${gen.id === 99 ? '?' : (gen.id === 0 ? 'H' : gen.id)}</div>
-                    <div class="gc-name">${gen.name}</div>
-                    <div class="gc-bonus">${gen.range}</div>
-                </div>
-            `;
-            card.onclick = () => Launcher.selectGen(idx, card);
+            if (gen.code) card.classList.add('gc-style-' + gen.code);
+
+            if (gen.locked) {
+                card.classList.add('is-locked');
+                card.innerHTML = `
+                    <div class="gc-inner">
+                        <div class="lock-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2m-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2m3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+                            </svg>
+                        </div>
+                        <div class="gc-name" style="color:#ffd700; text-shadow:none;">${gen.name}</div>
+                        <div class="gc-bonus locked-tag">${gen.teaser || 'LOCKED'}</div>
+                    </div>
+                    <div class="scan-line"></div>
+                `;
+
+                card.onclick = () => {
+                    const statusText = document.getElementById('feature-list');
+                    if (!statusText) return;
+
+                    const originalText = statusText.dataset.originalText || statusText.innerText;
+                    statusText.dataset.originalText = originalText;
+
+                    statusText.innerText = 'ACCESS DENIED';
+                    statusText.style.color = '#ff4757';
+                    statusText.style.borderColor = '#ff4757';
+
+                    card.classList.add('access-denied-anim');
+                    setTimeout(() => card.classList.remove('access-denied-anim'), 500);
+
+                    if (Launcher._featureResetTimer) clearTimeout(Launcher._featureResetTimer);
+                    Launcher._featureResetTimer = setTimeout(() => {
+                        statusText.innerText = statusText.dataset.originalText || originalText;
+                        statusText.style.color = '';
+                        statusText.style.borderColor = '';
+                    }, 2000);
+                };
+            } else {
+                if (gen.id === 0) card.style.borderBottom = '4px solid #fab1a0';
+                if (gen.id === 99) card.style.borderBottom = '4px solid #6c5ce7';
+                card.innerHTML = `
+                    <div class="gc-inner">
+                        <div class="gc-num">${gen.id === 99 ? '?' : (gen.id === 0 ? 'H' : gen.id)}</div>
+                        <div class="gc-name">${gen.name}</div>
+                        <div class="gc-bonus">${gen.range || (gen.id === 0 ? 'LEGENDS' : (gen.id === 99 ? 'SANDBOX' : 'GENERATION'))}</div>
+                    </div>
+                `;
+                card.onclick = () => Launcher.selectGen(idx, card);
+            }
+
             UI.genList.appendChild(card);
         });
     },
@@ -240,6 +350,8 @@ const Launcher = {
             `;
         }).join('');
 
+        const animeHeaderColor = data.id === 6 ? '#dfe6e9' : '#00cec9';
+
         const htmlBlock = `
             <span class="section-tag">DETECTED SIGNALS</span>
             <div class="starter-grid">
@@ -250,7 +362,7 @@ const Launcher = {
 
             <div class="config-block" id="anime-options" style="box-shadow:none; border:1px solid #4a4a4a; background:rgba(0,0,0,0.8);">
                 <div class="conf-text" style="transform: skewX(0);">
-                    <div class="ct-main" style="color:#00cec9; font-size:1rem;">ANIME_MODE.sys</div>
+                    <div class="ct-main" style="color:${animeHeaderColor}; font-size:1rem;">ANIME_MODE.sys</div>
                     <div class="ct-sub">Bond Logic / Plot Armor / Voice</div>
                 </div>
                 <div class="ch-box-wrap" style="transform: skewX(0);">
@@ -303,6 +415,19 @@ const Launcher = {
                         </div>
                     </div>
                 </div>
+
+                <div class="config-block" id="custom-anime-options" style="box-shadow:none; border:1px solid #4a4a4a; background:rgba(0,0,0,0.8);">
+                    <div class="conf-text" style="transform: skewX(0);">
+                        <div class="ct-main" style="color:#00cec9; font-size:1rem;">ANIME_MODE.sys</div>
+                        <div class="ct-sub">Bond Logic / Plot Armor / Voice</div>
+                    </div>
+                    <div class="ch-box-wrap" style="transform: skewX(0);">
+                        <label>
+                            <input type="checkbox" id="custom-anime-toggle" class="native-check" ${State.customAnimeMode ? 'checked' : ''}>
+                            <div class="custom-check" style="height:20px; width:40px;"></div>
+                        </label>
+                    </div>
+                </div>
             </div>
 
             <span class="section-tag" style="margin-top:10px;">SYSTEM KERNEL // 系统内核覆写</span>
@@ -321,6 +446,14 @@ const Launcher = {
                 card.classList.toggle('active');
             });
         });
+
+        const customAnimeToggle = document.getElementById('custom-anime-toggle');
+        if (customAnimeToggle) {
+            customAnimeToggle.checked = State.customAnimeMode;
+            customAnimeToggle.onchange = (e) => {
+                State.customAnimeMode = e.target.checked;
+            };
+        }
     },
 
     setStandardStarter(btn, name) {
@@ -351,20 +484,19 @@ const Launcher = {
 
         const data = GenesisData[idx];
         const isCustom = data.id === 99;
+        const mechanicsList = Array.isArray(data.mechanics) ? data.mechanics : [];
         let finalRegion = data.name;
         let finalStarter = State.selectedStarter;
-        let finalMechanics = {};
-        const finalSettings = { enableSFX: true, enableBGM: true };
+        let finalMechanics = { ...BASE_UNLOCK_STATE };
+        const finalSettings = { ...DEFAULT_WORLD_SETTINGS };
+        let animeModeActive = false;
 
         if (!isCustom) {
             if (!finalStarter) return alert('请选择初始宝可梦！');
-            data.mechanics.forEach(key => finalMechanics[key] = true);
-            if (State.animeMode) {
-                finalMechanics['enable_bond'] = true;
-                finalMechanics['enable_av_logic'] = true;
-                finalMechanics['enable_aim_bot'] = true;
-            }
-            finalSettings.animeMode = State.animeMode;
+            mechanicsList.forEach(key => finalMechanics[key] = true);
+            applyGenUnlocks(finalMechanics, data.id);
+            applyAnimeUnlocks(finalMechanics, State.animeMode);
+            animeModeActive = !!State.animeMode;
         } else {
             const regInput = document.getElementById('cust-region');
             const startInput = document.getElementById('cust-starter');
@@ -382,36 +514,17 @@ const Launcher = {
                 }
             });
 
-            if (finalMechanics['enable_bond']) {
-                finalMechanics['enable_av_logic'] = true;
-                finalSettings.animeMode = true;
-            } else {
-                finalSettings.animeMode = false;
-            }
+            applyAnimeUnlocks(finalMechanics, State.customAnimeMode);
+            animeModeActive = !!State.customAnimeMode;
         }
 
+        applySettingsMode(finalSettings, animeModeActive);
+
         const newDB = {
-            version: 'Ver.Dawn-V1.1-CustomBuild',
             player: {
-                name: 'Trainer',
-                money: 3000,
-                party: {
-                    slot1: {
-                        name: finalStarter,
-                        species: finalStarter,
-                        lv: 5, gender: 'M', nature: 'Hardy', ability: 'hidden', item: null,
-                        mood: 'happy',
-                        friendship: { avs: { trust: 60, passion: 30, insight: 10, devotion: 0 } },
-                        moves: { move1: 'Tackle', move2: 'Leer' },
-                        isLead: true
-                    },
-                    slot2: {}, slot3: {}, slot4: {}, slot5: {}, slot6: {}
-                },
-                box: {},
                 unlocks: finalMechanics,
                 world_state: {
-                    region: finalRegion,
-                    location: 'Starting Point'
+                    region: finalRegion
                 },
                 settings: finalSettings
             }
@@ -420,24 +533,57 @@ const Launcher = {
         const jsonStr = JSON.stringify(newDB, null, 2);
         console.log('Generated:', newDB);
 
-        const logicType = isCustom ? 'CUSTOM SANDBOX' : (finalSettings.animeMode ? 'ANIME LOGIC' : 'GAME LOGIC');
+        const logicType = isCustom ? 'CUSTOM SANDBOX' : (animeModeActive ? 'ANIME LOGIC' : 'GAME LOGIC');
+        const starterPromptLine = finalStarter ? `初始宝可梦：${finalStarter.toUpperCase()}。` : '初始宝可梦：未指定。';
+        const guideLine = isCustom
+            ? `这里是自建世界区域${finalRegion}。请描述主角获得了${finalStarter || '自定义搭档'}的场景。`
+            : '请沿用官方开局剧本。';
         const msg = `
 [SYSTEM: WORLD RESET]
 // Mode: ${logicType}
 // Region: ${finalRegion}
 // Starter: ${finalStarter.toUpperCase()}
-// Unlocks: ${Object.keys(finalMechanics).length} Modules Active
 
-<VariableInsert>
+<VariableEdit>
 ${jsonStr}
-</VariableInsert>
+</VariableEdit>
 
 [引导]
-${isCustom ? `这里是自建世界区域${finalRegion}。请描述主角获得了${finalStarter}的场景。注意启用的特殊系统: ${Object.keys(finalMechanics).join(', ')}。` : '请沿用官方开局剧本。'}`.trim();
+${starterPromptLine}
+${guideLine}`.trim();
 
         copyToClipboard(msg);
     }
 };
+
+// 附加 BGM 控制逻辑
+if (typeof Launcher !== 'undefined') {
+    Launcher.toggleBGM = function () {
+        const audio = document.getElementById('sys-bgm-layer');
+        const widget = document.getElementById('bgm-float-btn');
+        const statusTxt = document.getElementById('bgm-status-text');
+
+        if (!audio || !widget || !statusTxt) return;
+
+        audio.volume = 0.35;
+
+        if (audio.paused) {
+            audio.play().then(() => {
+                widget.classList.add('playing');
+                widget.classList.remove('paused');
+                statusTxt.innerText = 'ACTIVE';
+            }).catch(err => {
+                console.warn('Audio playback blocked:', err);
+                statusTxt.innerText = 'ERROR';
+            });
+        } else {
+            audio.pause();
+            widget.classList.remove('playing');
+            widget.classList.add('paused');
+            statusTxt.innerText = 'OFFLINE';
+        }
+    };
+}
 
 function copyToClipboard(text) {
     const el = document.createElement('textarea');

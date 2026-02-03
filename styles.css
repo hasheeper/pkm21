@@ -730,7 +730,7 @@ body {
 }
 .chip-cell::before {
     content: attr(data-stat);
-    font-size: 0.45rem;
+    font-size: 0.55rem;
     font-weight: 900;
     color: #b2bec3;
     margin-bottom: 1px;
@@ -1066,7 +1066,7 @@ body {
     opacity: 0.8;
 }
 .asi-label {
-    font-size: 0.45rem;
+    font-size: 0.55rem;
     font-weight: 900;
     color: #b2bec3;
     letter-spacing: 0.5px;

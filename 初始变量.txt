@@ -6,22 +6,25 @@
     "enableEVO": true,
     "enableBGM": true,
     "enableSFX": true,
-    "enableClash": false,
+    "enableClash": true,
     "enableEnvironment": true
   },
+    "world_state": {
+      "region": null
+    },
   "player": {
       "name": "{{user}}",
       "trainerProficiency": 0,
       "proficiency_up": 0,
       "unlocks": {
-        "enable_bond": false,
+        "enable_bond": true,
         "enable_styles": false,
-        "enable_insight": false,
-        "enable_mega": false,
-        "enable_z_move": false,
-        "enable_dynamax": false,
-        "enable_tera": false,
-        "enable_proficiency_cap": false
+        "enable_insight": true,
+        "enable_mega": true,
+        "enable_z_move": true,
+        "enable_dynamax": true,
+        "enable_tera": true,
+        "enable_proficiency_cap": true
       },
       "party": {
         "slot1": {

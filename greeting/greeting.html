@@ -16,9 +16,23 @@
     <!-- 装饰背景 -->
     <div class="bg-grid"></div>
 
+    <!-- BGM 浮窗模块 -->
+    <div id="bgm-float-btn" class="bgm-module paused" onclick="Launcher.toggleBGM()">
+        <div class="bgm-icon-wrap">
+            <span class="icon-note">♫</span>
+            <div class="eq-bar b1"></div>
+            <div class="eq-bar b2"></div>
+            <div class="eq-bar b3"></div>
+        </div>
+        <span id="bgm-status-text">OFFLINE</span>
+    </div>
+    <audio id="sys-bgm-layer" loop>
+        <source src="https://files.catbox.moe/5mz9sl.mp3" type="audio/mpeg">
+    </audio>
+
     <!-- 顶部 -->
     <div class="header-strip">
-        <div class="header-title">INITIALIZE<br>SIMULATION</div>
+        <div class="header-title">INITIALIZE</div>
         <div class="header-sub">Universal Beta V1.1 // Ver.Dawn</div>
         <div class="header-deco-line"></div>
     </div>
